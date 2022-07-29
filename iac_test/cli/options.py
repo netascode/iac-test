@@ -37,6 +37,22 @@ output = click.option(
     required=True,
 )
 
+include = click.option(
+    "-i",
+    "--include",
+    help="Selects the test cases by tag (include).",
+    required=False,
+    multiple=True,
+)
+
+exclude = click.option(
+    "-e",
+    "--exclude",
+    help="Selects the test cases by tag (exclude).",
+    required=False,
+    multiple=True,
+)
+
 render_only = click.option(
     "--render-only",
     is_flag=True,

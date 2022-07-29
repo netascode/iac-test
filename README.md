@@ -137,6 +137,10 @@ tests
     └── test1.robot
 ```
 
+## Select Test Cases By Tag
+
+It is possible to include and exclude test cases by tag names with the `--include` and `--exclude` CLI options. These options are directly passed to the Pabot/Robot executor and are documented [here](https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#by-tag-names).
+
 ## Installation
 
 Python 3.6+ is required to install `iac-test`. Don't have Python 3.6 or later? See [Python 3 Installation & Setup Guide](https://realpython.com/installing-python/).
