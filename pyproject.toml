@@ -25,6 +25,8 @@ robotframework = "^5.0.1"
 robotframework-pabot = "^2.5.3"
 "ruamel.yaml" = "^0.16.10"
 yamale = "^4.0.3"
+robotframework-jsonlibrary = "^0.5"
+robotframework-requests = "^0.9.3"
 
 [tool.poetry.dev-dependencies]
 black = [

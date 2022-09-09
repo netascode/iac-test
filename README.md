@@ -150,3 +150,11 @@ Python 3.6+ is required to install `iac-test`. Don't have Python 3.6 or later? S
 ```shell
 pip install iac-test
 ```
+
+The following Robot libraries are installed with `iac-test`:
+
+- [RESTinstance](https://github.com/asyrjasalo/RESTinstance)
+- [Requests](https://github.com/MarketSquare/robotframework-requests)
+- [JSONLibrary](https://github.com/robotframework-thailand/robotframework-jsonlibrary)
+
+Any other libraries can of course be added via `pip`.

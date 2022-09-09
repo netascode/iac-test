@@ -75,6 +75,7 @@ python-versions = ">=3.6.2"
 
 [package.dependencies]
 click = ">=7.1.2"
+dataclasses = {version = ">=0.6", markers = "python_version < \"3.7\""}
 mypy-extensions = ">=0.4.3"
 pathspec = ">=0.9.0,<1"
 platformdirs = ">=2"
@@ -692,6 +693,19 @@ optional = false
 python-versions = ">=3.6"
 
 [[package]]
+name = "robotframework-jsonlibrary"
+version = "0.5"
+description = "robotframework-jsonlibrary is a Robot Framework test library for manipulating JSON Object. You can manipulate your JSON object using JSONPath"
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+jsonpath-ng = ">=1.4.3"
+jsonschema = ">=2.5.1"
+robotframework = ">=3.0"
+
+[[package]]
 name = "robotframework-pabot"
 version = "2.5.4"
 description = "Parallel test runner for Robot Framework"
@@ -702,6 +716,21 @@ python-versions = ">=3.6"
 [package.dependencies]
 robotframework = ">=3.2"
 robotframework-stacktrace = ">=0.4.1"
+
+[[package]]
+name = "robotframework-requests"
+version = "0.9.3"
+description = "Robot Framework keyword library wrapper around requests"
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+requests = "*"
+robotframework = "*"
+
+[package.extras]
+test = ["robotframework (>=3.2.1)", "pytest", "flask", "six", "coverage", "flake8"]
 
 [[package]]
 name = "robotframework-stacktrace"
@@ -843,6 +872,7 @@ python-versions = ">=3.6"
 distlib = ">=0.3.1,<1"
 filelock = ">=3.2,<4"
 importlib-metadata = {version = ">=0.12", markers = "python_version < \"3.8\""}
+importlib-resources = {version = ">=1.0", markers = "python_version < \"3.7\""}
 platformdirs = ">=2,<3"
 
 [package.extras]
@@ -875,7 +905,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytes
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.6"
-content-hash = "67bd1ffee0492a9ab1aad1fd67dbb6e4f605dbf59bb91323b158560f64bd684d"
+content-hash = "e5019e2ccc952d2f7d27a98491dcba126969c207f353c47cf5db3bab72cbc8d4"
 
 [metadata.files]
 appdirs = [
@@ -1287,7 +1317,9 @@ robotframework = [
     {file = "robotframework-5.0.1-py3-none-any.whl", hash = "sha256:2d2072cf9ec807e820bf27e5f71240e715e37691c9ba930a59a71d5c0fd61998"},
     {file = "robotframework-5.0.1.zip", hash = "sha256:cf5dc59777ed9d8c3e1e91fb4403454890242867735681f22f4f22dbb2a20fc8"},
 ]
+robotframework-jsonlibrary = []
 robotframework-pabot = []
+robotframework-requests = []
 robotframework-stacktrace = [
     {file = "robotframework-stacktrace-0.4.1.tar.gz", hash = "sha256:e96cb36e7e9ab55104c1f7d3606249a109e0a4c3bb6a0e294bff07d54ee6f6a5"},
     {file = "robotframework_stacktrace-0.4.1-py3-none-any.whl", hash = "sha256:018d7a55b99733e64e3cc0b134771b61a47de61de23609ed35c7bf0a53e9290e"},
