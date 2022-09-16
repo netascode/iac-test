@@ -1,3 +1,8 @@
+# 0.1.2 (unreleased)
+
+- Add custom Jinja tests
+- Add iterate_list_folder rendering directive
+
 # 0.1.1
 
 - Add CLI options to select test cases by tag

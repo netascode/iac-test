@@ -101,9 +101,22 @@ class Filter:
         return str(data) + "_filtered"
 ```
 
+### Custom Jinja Tests
+
+Custom Jinja tests can be used by providing a set of Python classes where each test is implemented as a separate `Test` class in a `.py` file located in the `--tests` path. The class must have a single attribute named `name`, the test name, and a `classmethod()` named `test` which has one or more arguments. A sample test can be found below.
+
+```python
+class Test:
+    name = "test1"
+
+    @classmethod
+    def test(cls, data1, data2):
+        return data1 == data2
+```
+
 ### Rendering Directives
 
-A special rendering directive exists to render a single test suite per (YAML) list item. The directive can be added to the Robot template as a Jinja comment following this syntax:
+Special rendering directives exist to render a single test suite per (YAML) list item. The directive can be added to the Robot template as a Jinja comment following this syntax:
 
 ```
 {# iterate_list <YAML_PATH_TO_LIST> <LIST_ITEM_ID> <JINJA_VARIABLE_NAME> #}
@@ -135,6 +148,22 @@ tests
 │   └── test1.robot
 └── DEF
     └── test1.robot
+```
+
+A similar directive exists to put the test suites in a common folder though with a unique filename.
+
+```
+{# iterate_list_folder <YAML_PATH_TO_LIST> <LIST_ITEM_ID> <JINJA_VARIABLE_NAME> #}
+```
+
+The following test suites will be rendered:
+
+```shell
+$ tree -L 2 tests
+tests
+└── test1
+    ├── ABC.robot
+    └── DEF.robot
 ```
 
 ## Select Test Cases By Tag

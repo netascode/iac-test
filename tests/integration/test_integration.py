@@ -51,6 +51,27 @@ def test_iac_test_filter(tmpdir):
     assert result.exit_code == 0
 
 
+def test_iac_test_test(tmpdir):
+    runner = CliRunner()
+    data_path = "tests/integration/fixtures/data/"
+    templates_path = "tests/integration/fixtures/templates_test/"
+    tests_path = "tests/integration/fixtures/tests/"
+    result = runner.invoke(
+        iac_test.cli.main.main,
+        [
+            "-d",
+            data_path,
+            "-t",
+            templates_path,
+            "--tests",
+            tests_path,
+            "-o",
+            tmpdir,
+        ],
+    )
+    assert result.exit_code == 0
+
+
 def test_iac_test_render(tmpdir):
     runner = CliRunner()
     data_path = "tests/integration/fixtures/data/"
@@ -85,6 +106,26 @@ def test_iac_test_list(tmpdir):
             tmpdir,
         ],
     )
-    assert os.path.exists(os.path.join(tmpdir, "ABC"))
-    assert os.path.exists(os.path.join(tmpdir, "DEF"))
+    assert os.path.exists(os.path.join(tmpdir, "ABC", "test1.robot"))
+    assert os.path.exists(os.path.join(tmpdir, "DEF", "test1.robot"))
+    assert result.exit_code == 0
+
+
+def test_iac_test_list_folder(tmpdir):
+    runner = CliRunner()
+    data_path = "tests/integration/fixtures/data/"
+    templates_path = "tests/integration/fixtures/templates_list_folder/"
+    result = runner.invoke(
+        iac_test.cli.main.main,
+        [
+            "-d",
+            data_path,
+            "-t",
+            templates_path,
+            "-o",
+            tmpdir,
+        ],
+    )
+    assert os.path.exists(os.path.join(tmpdir, "test1", "ABC.robot"))
+    assert os.path.exists(os.path.join(tmpdir, "test1", "DEF.robot"))
     assert result.exit_code == 0

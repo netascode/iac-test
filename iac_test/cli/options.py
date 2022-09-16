@@ -29,6 +29,14 @@ filters = click.option(
     required=False,
 )
 
+tests = click.option(
+    "--tests",
+    type=click.Path(exists=True, dir_okay=True, file_okay=False),
+    help="Path to Jinja tests.",
+    required=False,
+)
+
+
 output = click.option(
     "-o",
     "--output",

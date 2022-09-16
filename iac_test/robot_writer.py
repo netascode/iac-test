@@ -18,16 +18,18 @@ logger = logging.getLogger(__name__)
 
 
 class RobotWriter:
-    def __init__(self, data_paths: List[str], filters_path: str) -> None:
+    def __init__(
+        self, data_paths: List[str], filters_path: str, tests_path: str
+    ) -> None:
         self.data: Dict[str, Any] = {}
         for data_path in data_paths:
             logger.info("Loading yaml files from %s", data_path)
             data = yaml.load_yaml_files(data_path)
             util.merge_dict_list(data, self.data)
+        self.filters = {}
         self.filters: Dict[str, Any] = {}
         if filters_path:
             logger.info("Loading filters")
-            self.filters = {}
             for filename in os.listdir(filters_path):
                 if filename.endswith(".py"):
                     file_path = os.path.join(filters_path, filename)
@@ -40,6 +42,22 @@ class RobotWriter:
                         if spec.loader is not None:
                             spec.loader.exec_module(mod)
                             self.filters[mod.Filter.name] = mod.Filter
+        self.tests = {}
+        self.tests: Dict[str, Any] = {}
+        if tests_path:
+            logger.info("Loading tests")
+            for filename in os.listdir(tests_path):
+                if filename.endswith(".py"):
+                    file_path = os.path.join(tests_path, filename)
+                    spec = importlib.util.spec_from_file_location(
+                        "iac_test.tests", file_path
+                    )
+                    if spec is not None:
+                        mod = importlib.util.module_from_spec(spec)
+                        sys.modules["iac_test.tests"] = mod
+                        if spec.loader is not None:
+                            spec.loader.exec_module(mod)
+                            self.tests[mod.Test.name] = mod.Test
 
     def render_template(
         self,
@@ -82,6 +100,8 @@ class RobotWriter:
         )
         for name, filter in self.filters.items():
             env.filters[name] = filter.filter
+        for name, test in self.tests.items():
+            env.tests[name] = test.test
 
         for dir, _, files in os.walk(templates_path):
             for filename in files:
@@ -96,7 +116,10 @@ class RobotWriter:
                     content = file.read()
                 for match in re.finditer(pattern, content):
                     params = match.group().split(" ")
-                    if len(params) == 6 and params[1] == "iterate_list":
+                    if len(params) == 6 and params[1] in [
+                        "iterate_list",
+                        "iterate_list_folder",
+                    ]:
                         next_template = True
                         path = params[2].split(".")
                         attr = params[3]
@@ -117,7 +140,16 @@ class RobotWriter:
                                 extra = {params[4].split("[")[0]: extra_list}
                             else:
                                 extra = {params[4]: value}
-                            o_path = os.path.join(output_path, rel, value, filename)
+                            if params[1] == "iterate_list":
+                                o_path = os.path.join(output_path, rel, value, filename)
+                            else:
+                                foldername = os.path.splitext(filename)[0]
+                                new_filename = (
+                                    value + "." + os.path.splitext(filename)[1][1:]
+                                )
+                                o_path = os.path.join(
+                                    output_path, rel, foldername, new_filename
+                                )
                             self.render_template(t_path, o_path, env, **extra)
                 if next_template:
                     continue
