@@ -1,4 +1,4 @@
-# 0.1.2 (unreleased)
+# 0.1.2
 
 - Add custom Jinja tests
 - Add iterate_list_folder rendering directive
