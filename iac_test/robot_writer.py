@@ -26,7 +26,6 @@ class RobotWriter:
             logger.info("Loading yaml files from %s", data_path)
             data = yaml.load_yaml_files(data_path)
             util.merge_dict_list(data, self.data)
-        self.filters = {}
         self.filters: Dict[str, Any] = {}
         if filters_path:
             logger.info("Loading filters")
@@ -42,7 +41,6 @@ class RobotWriter:
                         if spec.loader is not None:
                             spec.loader.exec_module(mod)
                             self.filters[mod.Filter.name] = mod.Filter
-        self.tests = {}
         self.tests: Dict[str, Any] = {}
         if tests_path:
             logger.info("Loading tests")
