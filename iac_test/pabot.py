@@ -12,5 +12,7 @@ def run_pabot(path: str, include: str = "", exclude: str = "") -> None:
         args.extend(["--include", include])
     if exclude:
         args.extend(["--exclude", exclude])
-    args.extend(["-d", path, "--skiponfailure", "non-critical", path])
+    args.extend(
+        ["-d", path, "--skiponfailure", "non-critical", "-x", "xunit.xml", path]
+    )
     pabot.pabot.main(args)

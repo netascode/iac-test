@@ -85,7 +85,8 @@ tests
 ├── output.xml
 ├── pabot_results
 ├── report.html
-└── test1.robot
+├── test1.robot
+└── xunit.xml
 ```
 
 ### Custom Jinja Filters

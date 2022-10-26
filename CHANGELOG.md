@@ -1,3 +1,7 @@
+# 0.1.3 (unreleased)
+
+- Add xUnit output (`xunit.xml`)
+
 # 0.1.2
 
 - Add custom Jinja tests
