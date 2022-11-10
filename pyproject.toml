@@ -21,7 +21,7 @@ errorhandler = "^2.0.1"
 importlib-metadata = {version = "^2.0.0", python = "<3.8"}
 jmespath = "^0.10.0"
 python = "^3.7"
-robotframework = "^5.0.1"
+robotframework = ">=4"
 robotframework-jsonlibrary = "^0.5"
 robotframework-pabot = "^2.5.3"
 robotframework-requests = "^0.9.3"
