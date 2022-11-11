@@ -149,8 +149,10 @@ class RobotWriter:
                             else:
                                 extra = {params[4]: value}
                             if params[1] == "iterate_list":
-                                dir = self._fix_duplicate_path(output_path, rel, value)
-                                o_path = os.path.join(dir, filename)
+                                o_dir = self._fix_duplicate_path(
+                                    output_path, rel, value
+                                )
+                                o_path = os.path.join(o_dir, filename)
                             else:
                                 foldername = os.path.splitext(filename)[0]
                                 new_filename = (

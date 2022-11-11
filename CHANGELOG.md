@@ -1,3 +1,7 @@
+# 0.1.5 (unreleased)
+
+- Fix bug related to nested template directories
+
 # 0.1.4
 
 - Upgrade to Robot Framework 6.x
