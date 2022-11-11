@@ -1,3 +1,7 @@
+# 0.1.4 (unreleased)
+
+- Upgrade to Robot Framework 6.x
+
 # 0.1.3
 
 - Add xUnit output (`xunit.xml`)
