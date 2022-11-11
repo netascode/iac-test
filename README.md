@@ -15,11 +15,20 @@ Usage: iac-test [OPTIONS]
 Options:
   --version                  Show the version and exit.
   -v, --verbosity LVL        Either CRITICAL, ERROR, WARNING, INFO or DEBUG
-  -d, --data PATH            Path to data YAML files.  [required]
-  -t, --templates DIRECTORY  Path to test templates.  [required]
-  -f, --filters DIRECTORY    Path to Jinja filters.
-  -o, --output DIRECTORY     Path to output directory.  [required]
-  --render-only              Only render tests without executing.
+  -d, --data PATH            Path to data YAML files. (env: IAC_TEST_DATA)
+                             [required]
+  -t, --templates DIRECTORY  Path to test templates. (env: IAC_TEST_TEMPLATES)
+                             [required]
+  -f, --filters DIRECTORY    Path to Jinja filters. (env: IAC_TEST_FILTERS)
+  --tests DIRECTORY          Path to Jinja tests. (env: IAC_TEST_TESTS)
+  -o, --output DIRECTORY     Path to output directory. (env: IAC_TEST_OUTPUT)
+                             [required]
+  -i, --include TEXT         Selects the test cases by tag (include). (env:
+                             IAC_TEST_INCLUDE)
+  -e, --exclude TEXT         Selects the test cases by tag (exclude). (env:
+                             IAC_TEST_EXCLUDE)
+  --render-only              Only render tests without executing them. (env:
+                             IAC_TEST_RENDER_ONLY)
   -h, --help                 Show this message and exit.
 ```
 
