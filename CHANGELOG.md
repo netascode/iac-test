@@ -1,6 +1,7 @@
 # 0.1.4 (unreleased)
 
 - Upgrade to Robot Framework 6.x
+- Add option to provide CLI arguments as environment variables
 
 # 0.1.3
 
