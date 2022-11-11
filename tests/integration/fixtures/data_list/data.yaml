@@ -1,0 +1,9 @@
+---
+root:
+  children:
+    - name: ABC
+      param: value
+    - name: DEF
+      param: value
+    - name: abC
+      param: value

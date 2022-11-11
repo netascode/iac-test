@@ -88,6 +88,20 @@ class RobotWriter:
         with open(output_path, "w") as file:
             file.write(result)
 
+    def _fix_duplicate_folder_path(self, *paths: str) -> str:
+        """Helper function to detect existing folder with non-matching case. Returns a unique path to work with case-insensitve filesystems."""
+        entries = os.listdir(os.path.join(*paths[:-1]))
+        lower_case_entries = [path.lower() for path in entries]
+        if paths[-1].lower() in lower_case_entries and paths[-1] not in entries:
+            return os.path.join(*paths[:-1], "_" + paths[-1])
+        return os.path.join(*paths)
+
+    def _fix_duplicate_file(self, *paths: str) -> str:
+        """Helper function to detect existing file with non-matching case. Returns a unique path to work with case-insensitve filesystems."""
+        if os.path.exists(os.path.join(*paths)):
+            return os.path.join(*paths[:-1], "_" + paths[-1])
+        return os.path.join(*paths)
+
     def write(self, templates_path: str, output_path: str) -> None:
         """Render Robot test suites."""
         env = Environment(
@@ -139,13 +153,16 @@ class RobotWriter:
                             else:
                                 extra = {params[4]: value}
                             if params[1] == "iterate_list":
-                                o_path = os.path.join(output_path, rel, value, filename)
+                                dir = self._fix_duplicate_folder_path(
+                                    output_path, rel, value
+                                )
+                                o_path = os.path.join(dir, filename)
                             else:
                                 foldername = os.path.splitext(filename)[0]
                                 new_filename = (
                                     value + "." + os.path.splitext(filename)[1][1:]
                                 )
-                                o_path = os.path.join(
+                                o_path = self._fix_duplicate_file(
                                     output_path, rel, foldername, new_filename
                                 )
                             self.render_template(t_path, o_path, env, **extra)
