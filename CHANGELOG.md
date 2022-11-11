@@ -1,4 +1,4 @@
-# 0.1.5 (unreleased)
+# 0.1.5
 
 - Fix bug related to nested template directories
 
