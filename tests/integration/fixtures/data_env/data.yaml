@@ -1,0 +1,7 @@
+---
+root:
+  children:
+    - name: ABC
+      param: value
+    - name: DEF
+      param: !env DEF

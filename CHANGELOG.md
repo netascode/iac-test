@@ -1,3 +1,8 @@
+# 0.1.6 (unreleased)
+
+- Add support for ansible-vault encrypted values
+- Add `!env` tag to read values from environment variables
+
 # 0.1.5
 
 - Fix bug related to nested template directories

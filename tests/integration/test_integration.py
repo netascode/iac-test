@@ -30,6 +30,25 @@ def test_iac_test(tmpdir):
     assert result.exit_code == 0
 
 
+def test_iac_test_env(tmpdir):
+    runner = CliRunner()
+    data_path = "tests/integration/fixtures/data_env/"
+    templates_path = "tests/integration/fixtures/templates/"
+    os.environ["DEF"] = "value"
+    result = runner.invoke(
+        iac_test.cli.main.main,
+        [
+            "-d",
+            data_path,
+            "-t",
+            templates_path,
+            "-o",
+            tmpdir,
+        ],
+    )
+    assert result.exit_code == 0
+
+
 def test_iac_test_filter(tmpdir):
     runner = CliRunner()
     data_path = "tests/integration/fixtures/data/"

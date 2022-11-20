@@ -2,36 +2,134 @@
 
 # Copyright: (c) 2022, Daniel Schmidt <danischm@cisco.com>
 
+import importlib.util
 import logging
 import os
-from typing import Any, Dict
+import subprocess
+from typing import Any, Dict, List
 
-import ruamel.yaml
-
-from iac_test import util
+from ruamel import yaml
 
 logger = logging.getLogger(__name__)
 
 
-def load_yaml_files(path: str) -> Dict[str, Any]:
+class VaultTag(yaml.YAMLObject):
+    yaml_tag = "!vault"
+
+    def __init__(self, v: str):
+        self.value = v
+
+    def __repr__(self) -> str:
+        spec = importlib.util.find_spec("iac_test.ansible_vault")
+        if spec:
+            if "ANSIBLE_VAULT_ID" in os.environ:
+                vault_id = os.environ["ANSIBLE_VAULT_ID"] + "@" + str(spec.origin)
+            else:
+                vault_id = str(spec.origin)
+            t = subprocess.check_output(
+                [
+                    "ansible-vault",
+                    "decrypt",
+                    "--vault-id",
+                    vault_id,
+                ],
+                input=self.value.encode(),
+            )
+            return t.decode()
+        return ""
+
+    @classmethod
+    def from_yaml(cls, loader: Any, node: Any) -> str:
+        return str(cls(node.value))
+
+
+class EnvTag(yaml.YAMLObject):
+    yaml_tag = "!env"
+
+    def __init__(self, v: str):
+        self.value = v
+
+    def __repr__(self) -> str:
+        env = os.getenv(self.value)
+        if env is None:
+            return ""
+        return env
+
+    @classmethod
+    def from_yaml(cls, loader: Any, node: Any) -> str:
+        return str(cls(node.value))
+
+
+def load_yaml_files(paths: List[str]) -> Dict[str, Any]:
     """Load all yaml files from a provided directory."""
 
     def _load_file(file_path: str, data: Dict[str, Any]) -> None:
         with open(file_path, "r") as file:
             if ".yaml" in file_path or ".yml" in file_path:
                 data_yaml = file.read()
-                yaml = ruamel.yaml.YAML(typ="safe")
-                dict = yaml.load(data_yaml)
-                util.merge_dict_list(dict, data)
+                y = yaml.YAML()
+                y.preserve_quotes = True  # type: ignore
+                y.register_class(VaultTag)
+                y.register_class(EnvTag)
+                dict = y.load(data_yaml)
+                merge_dict(dict, data)
 
     result: Dict[str, Any] = {}
-    if os.path.isfile(path):
-        _load_file(path, result)
-    else:
-        for dir, subdir, files in os.walk(path):
-            for filename in files:
-                try:
-                    _load_file(dir + os.path.sep + filename, result)
-                except:  # noqa: E722
-                    logger.warning("Could not load file: {}".format(filename))
+    for path in paths:
+        if os.path.isfile(path):
+            _load_file(path, result)
+        else:
+            for dir, subdir, files in os.walk(path):
+                for filename in files:
+                    try:
+                        _load_file(dir + os.path.sep + filename, result)
+                    except:  # noqa: E722
+                        logger.warning("Could not load file: {}".format(filename))
     return result
+
+
+def merge_list_item(
+    source_item: Any, destination: List[Any], merge_list_items: bool = True
+) -> None:
+    """Merge item into list."""
+    if isinstance(source_item, dict):
+        # check if we have an item in destination with matching primitives
+        for dest_item in destination:
+            match = True
+            comparison = False
+            for k, v in source_item.items():
+                if isinstance(v, dict) or isinstance(v, list):
+                    continue
+                if k in dest_item and v == dest_item[k]:
+                    comparison = True
+                    continue
+                if k not in dest_item:
+                    continue
+                comparison = True
+                match = False
+            if comparison and match and merge_list_items:
+                merge_dict(source_item, dest_item)
+                return
+    elif source_item in destination and merge_list_items:
+        return
+    destination.append(source_item)
+
+
+def merge_dict(
+    source: Dict[Any, Any], destination: Dict[Any, Any], merge_list_items: bool = True
+) -> Dict[Any, Any]:
+    """Merge two nested dict/list structures."""
+    for key, value in source.items():
+        if isinstance(value, dict):
+            # get node or create one
+            node = destination.setdefault(key, {})
+            merge_dict(value, node)
+        elif isinstance(value, list):
+            if key not in destination:
+                destination[key] = value
+            if isinstance(destination[key], list):
+                for i in value:
+                    merge_list_item(i, destination[key], merge_list_items)
+        else:
+            destination[key] = value
+    return destination

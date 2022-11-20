@@ -12,7 +12,7 @@ from typing import Any, Dict, List
 
 from jinja2 import ChainableUndefined, Environment, FileSystemLoader  # type: ignore
 
-from iac_test import util, yaml
+from iac_test import yaml
 
 logger = logging.getLogger(__name__)
 
@@ -21,11 +21,8 @@ class RobotWriter:
     def __init__(
         self, data_paths: List[str], filters_path: str, tests_path: str
     ) -> None:
-        self.data: Dict[str, Any] = {}
-        for data_path in data_paths:
-            logger.info("Loading yaml files from %s", data_path)
-            data = yaml.load_yaml_files(data_path)
-            util.merge_dict_list(data, self.data)
+        logger.info("Loading yaml files from %s", data_paths)
+        self.data = yaml.load_yaml_files(data_paths)
         self.filters: Dict[str, Any] = {}
         if filters_path:
             logger.info("Loading filters")

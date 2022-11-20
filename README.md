@@ -36,7 +36,29 @@ All data from the YAML files (`--data` option) will first be combined into a sin
 
 After all templates have been rendered [Pabot](https://pabot.org/) will execute all test suites in parallel and create a test report in the `--output` path. The `--skiponfailure non-critical` argument will be used by default, meaning all failed tests with a `non-critical` tag will show up as "skipped" instead of "failed" in the final test report.
 
-### Example
+## Ansible Vault Support
+
+Values in YAML files can be encrypted using [Ansible Vault](https://docs.ansible.com/ansible/latest/user_guide/vault.html). This requires Ansible (`ansible-vault` command) to be installed and the following two environment variables to be defined:
+
+```
+export ANSIBLE_VAULT_ID=dev
+export ANSIBLE_VAULT_PASSWORD=Password123
+```
+
+`ANSIBLE_VAULT_ID` is optional, and if not defined will be omitted.
+
+## Additional Tags
+
+### Reading Environment Variables
+
+The `!env` YAML tag can be used to read values from environment variables.
+
+```yaml
+root:
+  name: !env VAR_NAME
+```
+
+## Example
 
 `data.yaml` located in `./data` folder:
 
@@ -98,7 +120,7 @@ tests
 └── xunit.xml
 ```
 
-### Custom Jinja Filters
+## Custom Jinja Filters
 
 Custom Jinja filters can be used by providing a set of Python classes where each filter is implemented as a separate `Filter` class in a `.py` file located in the `--filters` path. The class must have a single attribute named `name`, the filter name, and a `classmethod()` named `filter` which has one or more arguments. A sample filter can be found below.
 
@@ -111,7 +133,7 @@ class Filter:
         return str(data) + "_filtered"
 ```
 
-### Custom Jinja Tests
+## Custom Jinja Tests
 
 Custom Jinja tests can be used by providing a set of Python classes where each test is implemented as a separate `Test` class in a `.py` file located in the `--tests` path. The class must have a single attribute named `name`, the test name, and a `classmethod()` named `test` which has one or more arguments. A sample test can be found below.
 
@@ -124,7 +146,7 @@ class Test:
         return data1 == data2
 ```
 
-### Rendering Directives
+## Rendering Directives
 
 Special rendering directives exist to render a single test suite per (YAML) list item. The directive can be added to the Robot template as a Jinja comment following this syntax:
 
