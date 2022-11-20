@@ -36,6 +36,24 @@ All data from the YAML files (`--data` option) will first be combined into a sin
 
 After all templates have been rendered [Pabot](https://pabot.org/) will execute all test suites in parallel and create a test report in the `--output` path. The `--skiponfailure non-critical` argument will be used by default, meaning all failed tests with a `non-critical` tag will show up as "skipped" instead of "failed" in the final test report.
 
+## Installation
+
+Python 3.7+ is required to install `iac-test`. Don't have Python 3.7 or later? See [Python 3 Installation & Setup Guide](https://realpython.com/installing-python/).
+
+`iac-test` can be installed in a virtual environment using `pip`:
+
+```shell
+pip install iac-test
+```
+
+The following Robot libraries are installed with `iac-test`:
+
+- [RESTinstance](https://github.com/asyrjasalo/RESTinstance)
+- [Requests](https://github.com/MarketSquare/robotframework-requests)
+- [JSONLibrary](https://github.com/robotframework-thailand/robotframework-jsonlibrary)
+
+Any other libraries can of course be added via `pip`.
+
 ## Ansible Vault Support
 
 Values in YAML files can be encrypted using [Ansible Vault](https://docs.ansible.com/ansible/latest/user_guide/vault.html). This requires Ansible (`ansible-vault` command) to be installed and the following two environment variables to be defined:
@@ -201,21 +219,3 @@ tests
 ## Select Test Cases By Tag
 
 It is possible to include and exclude test cases by tag names with the `--include` and `--exclude` CLI options. These options are directly passed to the Pabot/Robot executor and are documented [here](https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#by-tag-names).
-
-## Installation
-
-Python 3.7+ is required to install `iac-test`. Don't have Python 3.7 or later? See [Python 3 Installation & Setup Guide](https://realpython.com/installing-python/).
-
-`iac-test` can be installed in a virtual environment using `pip`:
-
-```shell
-pip install iac-test
-```
-
-The following Robot libraries are installed with `iac-test`:
-
-- [RESTinstance](https://github.com/asyrjasalo/RESTinstance)
-- [Requests](https://github.com/MarketSquare/robotframework-requests)
-- [JSONLibrary](https://github.com/robotframework-thailand/robotframework-jsonlibrary)
-
-Any other libraries can of course be added via `pip`.
