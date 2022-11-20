@@ -1,4 +1,4 @@
-# 0.1.6 (unreleased)
+# 0.2.0
 
 - Add support for ansible-vault encrypted values
 - Add `!env` tag to read values from environment variables
