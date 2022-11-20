@@ -204,7 +204,7 @@ It is possible to include and exclude test cases by tag names with the `--includ
 
 ## Installation
 
-Python 3.6+ is required to install `iac-test`. Don't have Python 3.6 or later? See [Python 3 Installation & Setup Guide](https://realpython.com/installing-python/).
+Python 3.7+ is required to install `iac-test`. Don't have Python 3.7 or later? See [Python 3 Installation & Setup Guide](https://realpython.com/installing-python/).
 
 `iac-test` can be installed in a virtual environment using `pip`:
 
