@@ -1,4 +1,4 @@
-# 0.2.1 (unreleased)
+# 0.2.1
 
 - Fix issue with YAML attributes named `tag`
 - Fix multiple instances of `include` and `exclude` CLI arguments
