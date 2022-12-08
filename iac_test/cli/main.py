@@ -64,8 +64,8 @@ def main(
     filters: str,
     tests: str,
     output: str,
-    include: str,
-    exclude: str,
+    include: List[str],
+    exclude: List[str],
     render_only: bool,
 ) -> None:
     """A CLI tool to render and execute Robot Framework tests using Jinja templating."""
