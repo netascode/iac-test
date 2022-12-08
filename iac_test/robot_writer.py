@@ -3,6 +3,7 @@
 # Copyright: (c) 2022, Daniel Schmidt <danischm@cisco.com>
 
 import importlib.util
+import json
 import logging
 import os
 import pathlib
@@ -67,7 +68,10 @@ class RobotWriter:
         pathlib.Path(os.path.dirname(output_path)).mkdir(parents=True, exist_ok=True)
 
         template = env.get_template(template_path)
-        result = template.render(self.data, **kwargs)
+        # hack to convert nested ordereddict to dict, to avoid duplicate dict keys, e.g. 'tag'
+        # json roundtrip should be safe as everything should be serializable
+        data = json.loads(json.dumps(self.data))
+        result = template.render(data, **kwargs)
 
         # remove extra empty lines
         lines = result.splitlines()

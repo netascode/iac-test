@@ -1,3 +1,7 @@
+# 0.2.1 (unreleased)
+
+- Fix issue with YAML attributes named `tag`
+
 # 0.2.0
 
 - Add support for ansible-vault encrypted values
