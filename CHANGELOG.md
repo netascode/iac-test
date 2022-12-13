@@ -1,3 +1,7 @@
+# 0.2.2 (unreleased)
+
+- Do not merge YAML dictionary list items, where each list item has unique attributes with primitive values
+
 # 0.2.1
 
 - Fix issue with YAML attributes named `tag`
