@@ -668,7 +668,7 @@ robotframework = ">=3.0"
 
 [[package]]
 name = "robotframework-pabot"
-version = "2.8.0"
+version = "2.10.0"
 description = "Parallel test runner for Robot Framework"
 category = "main"
 optional = false
@@ -1300,7 +1300,7 @@ robotframework-jsonlibrary = [
     {file = "robotframework-jsonlibrary-0.5.tar.gz", hash = "sha256:000ac2e53c7f96e3b749c6b5595fcec87d5291b4afc03fb252470356a7d5da1f"},
 ]
 robotframework-pabot = [
-    {file = "robotframework-pabot-2.8.0.tar.gz", hash = "sha256:e52300350fb60b52d77863227b7d23c134db712b89c8ef6030f87c8d16b4c5b3"},
+    {file = "robotframework-pabot-2.10.0.tar.gz", hash = "sha256:d7652f5df4ef5ec29435f799ccad2072ac0a2ab55b1bb58d537000e26b15dc0e"},
 ]
 robotframework-requests = [
     {file = "robotframework-requests-0.9.4.tar.gz", hash = "sha256:e00943b8526c38bed5c3c661c813ec9d5a2106961bd91da0068712c2a0d49e82"},
