@@ -1191,13 +1191,13 @@ robotframework = ">=3.0"
 
 [[package]]
 name = "robotframework-pabot"
-version = "2.12.0"
+version = "2.13.0"
 description = "Parallel test runner for Robot Framework"
 category = "main"
 optional = false
 python-versions = ">=3.6"
 files = [
-    {file = "robotframework-pabot-2.12.0.tar.gz", hash = "sha256:88a6f399599bdd2f0a5e590b1ffb7d3b46ec1afc04f770560864fe8276b27d76"},
+    {file = "robotframework-pabot-2.13.0.tar.gz", hash = "sha256:40ca4bcd520034986ee4a02a5754c23a7ddd6823ccfde7c34b0d0ca9da13fbcb"},
 ]
 
 [package.dependencies]
