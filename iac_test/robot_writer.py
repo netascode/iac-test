@@ -114,9 +114,13 @@ class RobotWriter:
 
         for dir, _, files in os.walk(templates_path):
             for filename in files:
-                if ".robot" not in filename and ".j2" not in filename:
+                if (
+                    ".robot" not in filename
+                    and ".j2" not in filename
+                    and ".resource" not in filename
+                ):
                     logger.warning(
-                        "Skip file with unknown file extension (not .robot or .j2): %s",
+                        "Skip file with unknown file extension (not one of .robot, .resource or .j2): %s",
                         os.path.join(dir, filename),
                     )
                     continue
