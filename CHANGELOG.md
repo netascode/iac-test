@@ -1,3 +1,8 @@
+# 0.2.3 (unreleased)
+
+- Handle file errors gracefully
+- Allow empty YAML files
+
 # 0.2.2
 
 - Do not merge YAML dictionary list items, where each list item has unique attributes with primitive values
