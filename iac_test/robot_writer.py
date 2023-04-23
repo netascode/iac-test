@@ -114,6 +114,12 @@ class RobotWriter:
 
         for dir, _, files in os.walk(templates_path):
             for filename in files:
+                if ".robot" not in filename and ".j2" not in filename:
+                    logger.warning(
+                        "Skip file with unknown file extension (not .robot or .j2): %s",
+                        os.path.join(dir, filename),
+                    )
+                    continue
                 rel = os.path.relpath(dir, templates_path)
                 t_path = os.path.join(rel, filename)
 
@@ -121,8 +127,14 @@ class RobotWriter:
                 pattern = re.compile("{#(.+?)#}")
                 content = ""
                 next_template = False
-                with open(os.path.join(dir, filename), "r") as file:
-                    content = file.read()
+                try:
+                    with open(os.path.join(dir, filename), "r") as file:
+                        content = file.read()
+                except:  # noqa: E722
+                    logger.warning(
+                        "Could not open/read file: %s", os.path.join(dir, filename)
+                    )
+                    continue
                 for match in re.finditer(pattern, content):
                     params = match.group().split(" ")
                     if len(params) == 6 and params[1] in [
