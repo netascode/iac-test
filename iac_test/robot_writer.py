@@ -8,6 +8,7 @@ import logging
 import os
 import pathlib
 import re
+import shutil
 import sys
 from typing import Any, Dict, List
 
@@ -119,10 +120,15 @@ class RobotWriter:
                     and ".j2" not in filename
                     and ".resource" not in filename
                 ):
-                    logger.warning(
+                    logger.info(
                         "Skip file with unknown file extension (not one of .robot, .resource or .j2): %s",
                         os.path.join(dir, filename),
                     )
+                    out = os.path.join(
+                        output_path, os.path.relpath(dir, templates_path)
+                    )
+                    pathlib.Path(out).mkdir(parents=True, exist_ok=True)
+                    shutil.copy(os.path.join(dir, filename), out)
                     continue
                 rel = os.path.relpath(dir, templates_path)
                 t_path = os.path.join(rel, filename)

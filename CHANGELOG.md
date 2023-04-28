@@ -1,3 +1,7 @@
+# 0.2.4 (unreleased)
+
+- Also copy non-robot files to temporary directory used for executing the tests
+
 # 0.2.3
 
 - Handle file errors gracefully
