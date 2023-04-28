@@ -1,4 +1,4 @@
-# 0.2.4 (unreleased)
+# 0.2.4
 
 - Also copy non-robot files to temporary directory used for executing the tests
 
