@@ -1,3 +1,7 @@
+# 0.2.5 (unreleased)
+
+- Add dry-run option
+
 # 0.2.4
 
 - Also copy non-robot files to temporary directory used for executing the tests
