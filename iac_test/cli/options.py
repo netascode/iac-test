@@ -78,6 +78,7 @@ render_only = click.option(
 dry_run = click.option(
     "--dry-run",
     is_flag=True,
-    help="Ignores the results of the tests.",
+    envvar="IAC_DRY_RUN",
+    help="Dry run flag. See robot dry run mode. (env: IAC_DRY_RUN)",
     required=False,
 )
