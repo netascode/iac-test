@@ -57,6 +57,7 @@ def configure_logging(level: str) -> None:
 @options.include
 @options.exclude
 @options.render_only
+@options.dry_run
 def main(
     verbosity: str,
     data: List[str],
@@ -67,6 +68,7 @@ def main(
     include: List[str],
     exclude: List[str],
     render_only: bool,
+    dry_run: bool,
 ) -> None:
     """A CLI tool to render and execute Robot Framework tests using Jinja templating."""
     configure_logging(verbosity)
@@ -74,8 +76,7 @@ def main(
     writer = iac_test.robot_writer.RobotWriter(data, filters, tests)
     writer.write(templates, output)
     if not render_only:
-        iac_test.pabot.run_pabot(output, include, exclude)
-
+        iac_test.pabot.run_pabot(output, include, exclude, dry_run)
     exit()
 
 

@@ -29,6 +29,8 @@ Options:
                              IAC_TEST_EXCLUDE)
   --render-only              Only render tests without executing them. (env:
                              IAC_TEST_RENDER_ONLY)
+  --dry-run                  Dry run flag. See robot dry run mode. (env:
+                             IAC_DRY_RUN)
   -h, --help                 Show this message and exit.
 ```
 

@@ -7,9 +7,13 @@ from typing import List
 import pabot.pabot
 
 
-def run_pabot(path: str, include: List[str] = [], exclude: List[str] = []) -> None:
+def run_pabot(
+    path: str, include: List[str] = [], exclude: List[str] = [], dry_run: bool = False
+) -> None:
     """Run pabot"""
     args = ["--pabotlib"]
+    if dry_run:
+        args.append("--dryrun")
     for i in include:
         args.extend(["--include", i])
     for e in exclude:
