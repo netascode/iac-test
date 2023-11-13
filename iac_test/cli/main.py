@@ -73,7 +73,7 @@ def main(
     """A CLI tool to render and execute Robot Framework tests using Jinja templating."""
     configure_logging(verbosity)
 
-    writer = iac_test.robot_writer.RobotWriter(data, filters, tests)
+    writer = iac_test.robot_writer.RobotWriter(data, filters, tests, include, exclude)
     writer.write(templates, output)
     if not render_only:
         iac_test.pabot.run_pabot(output, include, exclude, dry_run)

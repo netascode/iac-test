@@ -1,6 +1,7 @@
 # 0.2.5 (unreleased)
 
 - Add dry-run option
+- Make Robot include and exclude tags available in render process (`robot_include_tags` and `robot_exclude_tags` variables)
 
 # 0.2.4
 

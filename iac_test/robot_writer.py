@@ -21,11 +21,18 @@ logger = logging.getLogger(__name__)
 
 class RobotWriter:
     def __init__(
-        self, data_paths: List[str], filters_path: str, tests_path: str
+        self,
+        data_paths: List[str],
+        filters_path: str,
+        tests_path: str,
+        include_tags: List[str] = [],
+        exclude_tags: List[str] = [],
     ) -> None:
         logger.info("Loading yaml files from %s", data_paths)
         self.data = yaml.load_yaml_files(data_paths)
         self.filters: Dict[str, Any] = {}
+        self.include_tags = include_tags
+        self.exclude_tags = exclude_tags
         if filters_path:
             logger.info("Loading filters")
             for filename in os.listdir(filters_path):
@@ -61,10 +68,13 @@ class RobotWriter:
         template_path: str,
         output_path: str,
         env: Environment,
-        **kwargs: Dict[str, Any]
+        **kwargs: Any
     ) -> None:
         """Render single robot jinja template"""
         logger.info("Render robot template: %s", template_path)
+        # add robot tags to kwargs
+        kwargs["robot_include_tags"] = self.include_tags
+        kwargs["robot_exclude_tags"] = self.exclude_tags
         # create output directory if it does not exist yet
         pathlib.Path(os.path.dirname(output_path)).mkdir(parents=True, exist_ok=True)
 
