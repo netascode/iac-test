@@ -64,11 +64,7 @@ class RobotWriter:
                             self.tests[mod.Test.name] = mod.Test
 
     def render_template(
-        self,
-        template_path: str,
-        output_path: str,
-        env: Environment,
-        **kwargs: Any
+        self, template_path: str, output_path: str, env: Environment, **kwargs: Any
     ) -> None:
         """Render single robot jinja template"""
         logger.info("Render robot template: %s", template_path)
