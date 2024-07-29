@@ -1048,13 +1048,13 @@ use-chardet-on-py3 = ["chardet (>=3.0.2,<6)"]
 
 [[package]]
 name = "restinstance"
-version = "1.3.0"
+version = "1.4.1"
 description = "Robot Framework library for RESTful JSON APIs"
 optional = false
 python-versions = "*"
 files = [
-    {file = "RESTinstance-1.3.0-py2.py3-none-any.whl", hash = "sha256:3f02a632aab20495f3a0e6f9eaf42a6c93c0097eec696e34bfae6681584708d2"},
-    {file = "RESTinstance-1.3.0.tar.gz", hash = "sha256:383ff5f0256fc40b2ac8b6a52535b3d15bbabc5d38a805f287bd1594a8a30a7a"},
+    {file = "RESTinstance-1.4.1-py2.py3-none-any.whl", hash = "sha256:b51477cf748febcf60949fcdbe8b8d2b81c4da024850d031b4f7a8850e582e5f"},
+    {file = "RESTinstance-1.4.1.tar.gz", hash = "sha256:76c2b17fbc2dff4546a529434df21b5a0d7694d6cd91406df32af6bcc492c2e1"},
 ]
 
 [package.dependencies]
