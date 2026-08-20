@@ -522,12 +522,13 @@ class ConnectionBroker:
             writer.close()
             await writer.wait_closed()
 
-        # Disconnect all devices — bounded so shutdown doesn't block on a
-        # device lock held by an in-flight execute.  Note: an uncancellable
-        # run_in_executor call will still block in asyncio.run's
-        # shutdown_default_executor; this covers cancellable lock holders and
-        # ensures we log rather than hang silently.
-        for hostname in list(self.connected_devices.keys()):
+        # Disconnect all devices concurrently with per-device timeouts.
+        # Serial disconnects take ~10-12s each (Unicon waits for graceful SSH
+        # session teardown), so 19 devices serial = ~200s.  Concurrent brings
+        # this down to the single slowest disconnect (~12s).  Per-device
+        # timeouts prevent a stuck device lock from blocking the entire
+        # shutdown.
+        async def _bounded_disconnect(hostname: str) -> None:
             try:
                 await asyncio.wait_for(
                     self._disconnect_device(hostname),
@@ -537,6 +538,12 @@ class ConnectionBroker:
                 logger.warning(
                     f"Timed out waiting for device lock on {hostname} during shutdown"
                 )
+
+        if self.connected_devices:
+            await asyncio.gather(*[
+                _bounded_disconnect(hostname)
+                for hostname in list(self.connected_devices.keys())
+            ], return_exceptions=True)
 
         # Stop socket server
         if self.server:
