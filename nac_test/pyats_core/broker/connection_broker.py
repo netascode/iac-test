@@ -20,7 +20,10 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
-from nac_test.pyats_core.constants import MAX_BROKER_MESSAGE_BYTES
+from nac_test.pyats_core.constants import (
+    BROKER_SHUTDOWN_DEVICE_TIMEOUT,
+    MAX_BROKER_MESSAGE_BYTES,
+)
 from nac_test.pyats_core.ssh.command_cache import CommandCache
 from nac_test.utils import get_or_create_event_loop
 
@@ -315,17 +318,22 @@ class ConnectionBroker:
             Exception: Any other failure, after tearing the connection down so it
                 is not handed to the next caller.
         """
-        # Execute command in thread pool (since Unicon is synchronous)
-        loop = get_or_create_event_loop()
+        # Deferred import — connection_broker sits on the CLI import path, so
+        # a module-level import pulls the entire pyats/genie/unicon chain
+        # (~783 modules, ~0.45s) on every invocation including --help.
         try:
             from unicon.core.errors import SubCommandFailure
         except ImportError:
-            SubCommandFailure = None  # type: ignore[assignment,misc]
 
+            class SubCommandFailure(Exception):  # type: ignore[no-redef]
+                """Placeholder when unicon is not installed (Windows)."""
+
+        # Execute command in thread pool (since Unicon is synchronous)
+        loop = get_or_create_event_loop()
         try:
             output = await loop.run_in_executor(None, connection.execute, cmd)
         except Exception as e:
-            if SubCommandFailure is not None and isinstance(e, SubCommandFailure):
+            if isinstance(e, SubCommandFailure):
                 logger.warning(f"Command rejected by {hostname} (session intact): {e}")
                 raise
             logger.error(f"Command execution failed on {hostname}: {e}")
@@ -522,9 +530,21 @@ class ConnectionBroker:
             writer.close()
             await writer.wait_closed()
 
-        # Disconnect all devices
+        # Disconnect all devices — bounded so shutdown doesn't block on a
+        # device lock held by an in-flight execute.  Note: an uncancellable
+        # run_in_executor call will still block in asyncio.run's
+        # shutdown_default_executor; this covers cancellable lock holders and
+        # ensures we log rather than hang silently.
         for hostname in list(self.connected_devices.keys()):
-            await self._disconnect_device(hostname)
+            try:
+                await asyncio.wait_for(
+                    self._disconnect_device(hostname),
+                    timeout=BROKER_SHUTDOWN_DEVICE_TIMEOUT,
+                )
+            except asyncio.TimeoutError:
+                logger.warning(
+                    f"Timed out waiting for device lock on {hostname} during shutdown"
+                )
 
         # Stop socket server
         if self.server:
