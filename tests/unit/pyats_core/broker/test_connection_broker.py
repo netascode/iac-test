@@ -452,6 +452,33 @@ class TestExecuteCommandRetry:
         assert broker._get_connection.await_count == 1
         broker._disconnect_device_internal.assert_awaited_once_with("router-1")
 
+    def test_retry_path_stays_under_device_lock(self, broker: ConnectionBroker) -> None:
+        """_get_connection on both attempts must run under _device_locks[hostname].
+
+        This pins the contract that _get_connection and _run_and_cache are
+        lock-free — callers hold the lock. If a future change narrows or
+        drops the lock in _execute_command, this test catches it.
+        """
+        from unicon.core.errors import ConnectionError as UniconConnectionError
+
+        observed: list[bool] = []
+        broker._disconnect_device_internal = AsyncMock()  # type: ignore[method-assign]
+
+        async def _spy(hostname: str) -> MagicMock:
+            observed.append(broker._device_locks[hostname].locked())
+            return MagicMock()
+
+        broker._get_connection = _spy  # type: ignore[method-assign]
+
+        _run_execute(
+            broker,
+            "router-1",
+            "show version",
+            [UniconConnectionError("socket closed"), "live output"],
+        )
+
+        assert observed == [True, True]
+
     def test_connection_errors_are_not_retried(self, broker: ConnectionBroker) -> None:
         """Failure to establish a connection must not double the connect attempts."""
         broker._get_connection = AsyncMock(  # type: ignore[method-assign]
