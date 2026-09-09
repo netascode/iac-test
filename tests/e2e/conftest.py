@@ -213,11 +213,6 @@ def _run_e2e_scenario(
         output_arg = os.path.relpath(output_dir, Path.cwd())
 
     arch = scenario.architecture
-    if arch not in CONTROLLER_ARCHITECTURES and arch not in D2D_ARCHITECTURES:
-        raise ValueError(
-            f"Scenario '{scenario.name}' has unknown architecture '{arch}'. "
-            f"Must be one of {CONTROLLER_ARCHITECTURES | D2D_ARCHITECTURES}"
-        )
 
     # Build environment: inherit current process env, then layer scenario-specific vars.
     # subprocess.run() receives this dict directly — no monkeypatching needed.
@@ -233,6 +228,11 @@ def _run_e2e_scenario(
         env[f"{arch}_HOST"] = "127.0.0.1"
         env[f"{arch}_USERNAME"] = "mock_user"
         env[f"{arch}_PASSWORD"] = TEST_CREDENTIAL_SENTINEL
+    else:
+        raise ValueError(
+            f"Scenario '{scenario.name}' has unknown architecture '{arch}'. "
+            f"Must be one of {CONTROLLER_ARCHITECTURES | D2D_ARCHITECTURES}"
+        )
 
     # Secondary device credentials for D2D tests targeting devices with an OS distinct from the controller
     if scenario.expected_d2d_hostnames:

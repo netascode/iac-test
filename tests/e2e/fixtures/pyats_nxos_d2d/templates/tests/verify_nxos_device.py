@@ -1,16 +1,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # Copyright (c) 2025 Daniel Schmidt
 
-# SPDX-License-Identifier: MPL-2.0
-# Copyright (c) 2026 Daniel Schmidt
-
-"""
-[NRFU]: Verify NX-OS Port-Channel Operational State and Membership
-------------------------------------------------------------------
-This job file verifies that all configured Port-Channels and their member
-interfaces on NX-OS switches are in the operational 'up' state and bundled
-with flag 'P'.
-"""
+"""[NRFU]: Verify NX-OS Port-Channel Operational State and Membership."""
 
 import time
 from typing import Any
@@ -22,37 +13,16 @@ from nac_test.pyats_core.reporting.types import ResultStatus
 
 TITLE = "Verify NX-OS Port-Channel Operational State and Membership"
 
-DESCRIPTION = """Validates the operational state of all configured Port-Channels and their
-member interfaces on NX-OS switches. Ensures each Port-Channel is in the 'up' operational state
-and all configured member interfaces are active and bundled ('P' flag)."""
+DESCRIPTION = "Validates the operational state of Port-Channels and member interfaces on NX-OS switches."
 
-SETUP = (
-    "* SSH access to the target NX-OS device is available.\n"
-    "* Authentication credentials for the device are valid and configured.\n"
-    "* Port-Channels and member interfaces are configured in the data model.\n"
-)
+SETUP = "SSH access to the target NX-OS device."
 
 PROCEDURE = (
-    "* Establish SSH connection to the network device.\n"
-    "* Execute CLI command: 'show port-channel summary'.\n"
-    "* Parse the command output using Genie 'ShowPortChannelSummary' parser.\n"
-    "* For EACH configured Port-Channel in the data model:\n"
-    "    * Verify the Port-Channel exists in the operational state.\n"
-    "    * Verify that the 'oper_status' attribute equals 'up'.\n"
-    "    * Verify all expected member interfaces are bundled with flag 'P'.\n"
+    "1. Execute 'show port-channel summary'.\n"
+    "2. Verify Port-Channel operational state and member interface bundling."
 )
 
-PASS_FAIL_CRITERIA = (
-    "**This test passes when all of the following conditions are met:**\n\n"
-    "* At least one configured Port-Channel is found in the command output.\n"
-    "* ALL discovered Port-Channels have oper_status equal to 'up'.\n"
-    "* ALL configured member interfaces are present in the bundle with flag 'P'.\n\n"
-    "**This test fails if any of the following criteria are met:**\n\n"
-    "* Any configured Port-Channel is missing from the device output.\n"
-    "* Any Port-Channel has oper_status not equal to 'up' (e.g., 'down').\n"
-    "* Any configured member interface is missing from its Port-Channel or not in 'P' state.\n"
-    "* The CLI command execution fails or the parser returns empty output.\n"
-)
+PASS_FAIL_CRITERIA = "Passes if all configured Port-Channels and member interfaces are operational ('up' and 'P')."
 
 
 class VerifyNxosPortChannelSummary(NXOSTestBase):
