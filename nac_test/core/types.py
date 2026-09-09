@@ -18,7 +18,9 @@ from nac_test.core.constants import (
 
 # Type alias for supported controller type keys.
 # Matches the keys of CONTROLLER_REGISTRY in nac_test.core.controller.
-ControllerTypeKey = Literal["ACI", "SDWAN", "CC", "MERAKI", "FMC", "ISE", "IOSXE"]
+ControllerTypeKey = Literal[
+    "ACI", "SDWAN", "CC", "MERAKI", "FMC", "ISE", "IOSXE", "NXOS"
+]
 
 # Type alias for the semantic kind of a credential value.
 # Matches the keys used in CredentialSet.fields in nac_test.core.controller.
