@@ -164,6 +164,7 @@ __all__ = [
     "MAX_BROKER_MESSAGE_BYTES",
     # Device execution
     "DEVICE_EXECUTE_TIMEOUT",
+    "BROKER_SHUTDOWN_DEVICE_TIMEOUT",
     # Multi-job execution
     "TESTS_PER_JOB",
     "MAX_PARALLEL_JOBS",

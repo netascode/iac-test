@@ -318,15 +318,7 @@ class ConnectionBroker:
             Exception: Any other failure, after tearing the connection down so it
                 is not handed to the next caller.
         """
-        # Deferred import — connection_broker sits on the CLI import path, so
-        # a module-level import pulls the entire pyats/genie/unicon chain
-        # (~783 modules, ~0.45s) on every invocation including --help.
-        try:
-            from unicon.core.errors import SubCommandFailure
-        except ImportError:
-
-            class SubCommandFailure(Exception):  # type: ignore[no-redef]
-                """Placeholder when unicon is not installed (Windows)."""
+        from unicon.core.errors import SubCommandFailure
 
         # Execute command in thread pool (since Unicon is synchronous)
         loop = get_or_create_event_loop()
