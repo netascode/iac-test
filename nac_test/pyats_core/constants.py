@@ -40,6 +40,13 @@ DEVICE_EXECUTE_TIMEOUT: int = get_positive_numeric_env(
     "NAC_TEST_DEVICE_EXECUTE_TIMEOUT", 120, int
 )
 
+# Timeout for each per-device disconnect during broker shutdown.  Chosen to be
+# shorter than DEVICE_EXECUTE_TIMEOUT: if the lock holder is blocked on
+# something cancellable this lets shutdown proceed, but note that an
+# uncancellable run_in_executor call will still block in asyncio.run's
+# shutdown_default_executor after the coroutine returns.
+BROKER_SHUTDOWN_DEVICE_TIMEOUT: float = 30.0
+
 # PyATS config files written to output directory during test execution
 PYATS_PLUGIN_CONFIG_FILENAME: str = ".pyats_plugin.yaml"
 PYATS_CONFIG_FILENAME: str = ".pyats.conf"

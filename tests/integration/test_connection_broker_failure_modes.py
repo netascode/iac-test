@@ -72,7 +72,7 @@ def make_broker(
         broker.testbed = MagicMock()
         broker.testbed.devices = devices
         for hostname in devices:
-            broker.connection_locks[hostname] = asyncio.Lock()
+            broker._device_locks[hostname] = asyncio.Lock()
         return broker
 
     return _factory
