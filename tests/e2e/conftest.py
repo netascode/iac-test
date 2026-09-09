@@ -6,7 +6,7 @@
 This module provides E2E-specific fixtures:
 - E2EResults dataclass for capturing test run results
 - Scenario execution helper and individual scenario fixtures
-- SDWAN user testbed for D2D tests
+- Unified user testbed for D2D tests
 
 Common fixtures (mock_api_server, etc.) are inherited
 from the global tests/conftest.py.
@@ -20,6 +20,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
+import ruamel.yaml
 
 from tests.e2e.config import (
     ALL_FAIL_SCENARIO,
@@ -31,6 +32,7 @@ from tests.e2e.config import (
     PYATS_API_ONLY_SCENARIO,
     PYATS_CC_SCENARIO,
     PYATS_D2D_ONLY_SCENARIO,
+    PYATS_NXOS_D2D_SCENARIO,
     ROBOT_ONLY_SCENARIO,
     SUCCESS_SCENARIO,
     VERBOSE_SCENARIO,
@@ -43,6 +45,16 @@ from tests.e2e.mocks.mock_server import MockAPIServer
 # Sentinel value for credential exposure detection (#689)
 # All test passwords use this value so we can detect if credentials leak into artifacts
 TEST_CREDENTIAL_SENTINEL: str = "CRED_SENTINEL_MUST_NOT_APPEAR_IN_ARTIFACTS"
+
+# Mock device definitions for D2D testing
+MOCK_DEVICES: dict[str, dict[str, str]] = {
+    "sd-dc-c8kv-01": {"os": "iosxe", "type": "router"},
+    "sd-dc-c8kv-02": {"os": "iosxe", "type": "router"},
+    "nxos-switch-01": {"os": "nxos", "type": "switch"},
+}
+
+CONTROLLER_ARCHITECTURES = {"SDWAN", "ACI", "CC", "ISE", "FMC"}
+D2D_ARCHITECTURES = {"NXOS", "IOSXE"}
 
 
 @dataclass
@@ -103,12 +115,11 @@ class E2EResults:
 
 
 @pytest.fixture(scope="session")
-def sdwan_user_testbed() -> Generator[str, None, None]:
-    """Create a user testbed YAML with mock device connections for D2D tests.
+def user_testbed() -> Generator[str, None, None]:
+    """Create a unified user testbed YAML with mock device connections for D2D tests.
 
     This fixture creates a temporary testbed file that configures mock device
-    connections using the mock_unicon.py script. The testbed includes two
-    SDWAN edge devices (sd-dc-c8kv-01 and sd-dc-c8kv-02).
+    connections using the mock_unicon.py script for all supported mock devices.
 
     Returns:
         Path string to the testbed YAML file.
@@ -116,34 +127,37 @@ def sdwan_user_testbed() -> Generator[str, None, None]:
     project_root = Path(__file__).parent.parent.parent.absolute()
     mock_script = project_root / "tests" / "e2e" / "mocks" / "mock_unicon.py"
 
-    testbed_content = f"""
-testbed:
-  name: e2e_test_testbed
-  credentials:
-    default:
-      username: admin
-      password: admin
+    devices = {
+        name: {
+            "os": info["os"],
+            "type": info["type"],
+            "connections": {
+                "cli": {
+                    "command": f"python {mock_script} {info['os']} --hostname {name}"
+                }
+            },
+        }
+        for name, info in MOCK_DEVICES.items()
+    }
 
-devices:
-  sd-dc-c8kv-01:
-    os: iosxe
-    type: router
-    connections:
-      cli:
-        command: python {mock_script} iosxe --hostname sd-dc-c8kv-01
+    testbed_data = {
+        "testbed": {
+            "name": "e2e_mock_testbed",
+            "credentials": {
+                "default": {
+                    "username": "admin",
+                    "password": "admin",
+                }
+            },
+        },
+        "devices": devices,
+    }
 
-  sd-dc-c8kv-02:
-    os: iosxe
-    type: router
-    connections:
-      cli:
-        command: python {mock_script} iosxe --hostname sd-dc-c8kv-02
-"""
-
+    yaml = ruamel.yaml.YAML()
     with tempfile.NamedTemporaryFile(
-        mode="w", suffix="_testbed.yaml", delete=False
+        mode="w", suffix="_testbed.yaml", delete=False, encoding="utf-8"
     ) as f:
-        f.write(testbed_content)
+        yaml.dump(testbed_data, f)
         testbed_path = Path(f.name)
 
     try:
@@ -161,7 +175,7 @@ devices:
 def _run_e2e_scenario(
     scenario: E2EScenario,
     mock_api_server: MockAPIServer | None,
-    sdwan_user_testbed: str | None,
+    user_testbed: str | None,
     tmp_path_factory: pytest.TempPathFactory,
     output_path_relative: bool = False,
     extra_cli_args: list[str] | None = None,
@@ -174,7 +188,7 @@ def _run_e2e_scenario(
     Args:
         scenario: The scenario configuration to execute.
         mock_api_server: The mock API server instance (can be None, for example for dry-run scenarios).
-        sdwan_user_testbed: Path to the testbed YAML (None if not required).
+        user_testbed: Path to the testbed YAML (None if not required).
         tmp_path_factory: Pytest temp path factory.
         output_path_relative: Whether to pass a cwd-relative output path to the CLI.
         extra_cli_args: Additional CLI arguments to pass (e.g., ["--dry-run", "--verbose"]).
@@ -199,19 +213,34 @@ def _run_e2e_scenario(
         output_arg = os.path.relpath(output_dir, Path.cwd())
 
     arch = scenario.architecture
+    if arch not in CONTROLLER_ARCHITECTURES and arch not in D2D_ARCHITECTURES:
+        raise ValueError(
+            f"Scenario '{scenario.name}' has unknown architecture '{arch}'. "
+            f"Must be one of {CONTROLLER_ARCHITECTURES | D2D_ARCHITECTURES}"
+        )
 
     # Build environment: inherit current process env, then layer scenario-specific vars.
     # subprocess.run() receives this dict directly — no monkeypatching needed.
     env: dict[str, str] = {**os.environ}
-    if mock_api_server:
-        env[f"{arch}_URL"] = mock_api_server.url
-    else:
-        env[f"{arch}_URL"] = "http://dry-run.invalid"
-    env[f"{arch}_USERNAME"] = "mock_user"
-    env[f"{arch}_PASSWORD"] = TEST_CREDENTIAL_SENTINEL
-    # IOSXE credentials needed for D2D tests (device access)
-    env["IOSXE_USERNAME"] = "mock_user"
-    env["IOSXE_PASSWORD"] = TEST_CREDENTIAL_SENTINEL
+    if arch in CONTROLLER_ARCHITECTURES:
+        if mock_api_server:
+            env[f"{arch}_URL"] = mock_api_server.url
+        else:
+            env[f"{arch}_URL"] = "http://dry-run.invalid"
+        env[f"{arch}_USERNAME"] = "mock_user"
+        env[f"{arch}_PASSWORD"] = TEST_CREDENTIAL_SENTINEL
+    elif arch in D2D_ARCHITECTURES:
+        env[f"{arch}_HOST"] = "127.0.0.1"
+        env[f"{arch}_USERNAME"] = "mock_user"
+        env[f"{arch}_PASSWORD"] = TEST_CREDENTIAL_SENTINEL
+
+    # Secondary device credentials for D2D tests targeting devices with an OS distinct from the controller
+    if scenario.expected_d2d_hostnames:
+        for hostname in scenario.expected_d2d_hostnames:
+            dev_os = MOCK_DEVICES.get(hostname, {}).get("os", "").upper()
+            if dev_os and dev_os != arch:
+                env[f"{dev_os}_USERNAME"] = "mock_user"
+                env[f"{dev_os}_PASSWORD"] = TEST_CREDENTIAL_SENTINEL
 
     if extra_env_vars:
         env.update(extra_env_vars)
@@ -225,8 +254,8 @@ def _run_e2e_scenario(
         output_arg,
     ]
 
-    if scenario.requires_testbed and sdwan_user_testbed:
-        cli_args.extend(["--testbed", sdwan_user_testbed])
+    if scenario.requires_testbed and user_testbed:
+        cli_args.extend(["--testbed", user_testbed])
 
     # Add extra CLI arguments (e.g., --dry-run, --verbose)
     if extra_cli_args:
@@ -267,14 +296,14 @@ def _run_e2e_scenario(
 @pytest.fixture(scope="class")
 def e2e_success_results(
     mock_api_server: MockAPIServer,
-    sdwan_user_testbed: str,
+    user_testbed: str,
     tmp_path_factory: pytest.TempPathFactory,
 ) -> E2EResults:
     """Execute the success scenario once and cache results for the class."""
     return _run_e2e_scenario(
         SUCCESS_SCENARIO,
         mock_api_server,
-        sdwan_user_testbed,
+        user_testbed,
         tmp_path_factory,
     )
 
@@ -282,14 +311,14 @@ def e2e_success_results(
 @pytest.fixture(scope="class")
 def e2e_failure_results(
     mock_api_server: MockAPIServer,
-    sdwan_user_testbed: str,
+    user_testbed: str,
     tmp_path_factory: pytest.TempPathFactory,
 ) -> E2EResults:
     """Execute the all-fail scenario once and cache results for the class."""
     return _run_e2e_scenario(
         ALL_FAIL_SCENARIO,
         mock_api_server,
-        sdwan_user_testbed,
+        user_testbed,
         tmp_path_factory,
     )
 
@@ -297,14 +326,14 @@ def e2e_failure_results(
 @pytest.fixture(scope="class")
 def e2e_mixed_results(
     mock_api_server: MockAPIServer,
-    sdwan_user_testbed: str,
+    user_testbed: str,
     tmp_path_factory: pytest.TempPathFactory,
 ) -> E2EResults:
     """Execute the mixed scenario once and cache results for the class."""
     return _run_e2e_scenario(
         MIXED_SCENARIO,
         mock_api_server,
-        sdwan_user_testbed,
+        user_testbed,
         tmp_path_factory,
     )
 
@@ -312,14 +341,14 @@ def e2e_mixed_results(
 @pytest.fixture(scope="class")
 def e2e_mixed_relative_output_results(
     mock_api_server: MockAPIServer,
-    sdwan_user_testbed: str,
+    user_testbed: str,
     tmp_path_factory: pytest.TempPathFactory,
 ) -> E2EResults:
     """Execute the mixed scenario (same as above) with a relative output path."""
     return _run_e2e_scenario(
         MIXED_SCENARIO,
         mock_api_server,
-        sdwan_user_testbed,
+        user_testbed,
         tmp_path_factory,
         output_path_relative=True,
     )
@@ -362,14 +391,14 @@ def e2e_pyats_api_only_results(
 @pytest.fixture(scope="class")
 def e2e_pyats_d2d_only_results(
     mock_api_server: MockAPIServer,
-    sdwan_user_testbed: str,
+    user_testbed: str,
     tmp_path_factory: pytest.TempPathFactory,
 ) -> E2EResults:
     """Execute the PyATS D2D-only scenario once and cache results for the class."""
     return _run_e2e_scenario(
         PYATS_D2D_ONLY_SCENARIO,
         mock_api_server,
-        sdwan_user_testbed,
+        user_testbed,
         tmp_path_factory,
     )
 
@@ -377,14 +406,14 @@ def e2e_pyats_d2d_only_results(
 @pytest.fixture(scope="class")
 def e2e_pyats_cc_results(
     mock_api_server: MockAPIServer,
-    sdwan_user_testbed: str,
+    user_testbed: str,
     tmp_path_factory: pytest.TempPathFactory,
 ) -> E2EResults:
     """Execute the PyATS Catalyst Center (API + D2D) scenario once and cache results."""
     return _run_e2e_scenario(
         PYATS_CC_SCENARIO,
         mock_api_server,
-        sdwan_user_testbed,
+        user_testbed,
         tmp_path_factory,
     )
 
@@ -423,14 +452,14 @@ def e2e_verbose_with_info_results(
 
 @pytest.fixture(scope="class")
 def e2e_dry_run_results(
-    sdwan_user_testbed: str,
+    user_testbed: str,
     tmp_path_factory: pytest.TempPathFactory,
 ) -> E2EResults:
     """Execute the dry-run scenario (mixed fixtures with --dry-run flag)."""
     return _run_e2e_scenario(
         DRY_RUN_SCENARIO,
         None,
-        sdwan_user_testbed,
+        user_testbed,
         tmp_path_factory,
         extra_cli_args=["--dry-run"],
     )
@@ -500,7 +529,6 @@ def e2e_preflight_auth_failure_results(
 def e2e_tag_filter_include_results(
     mock_api_server: MockAPIServer,
     tmp_path_factory: pytest.TempPathFactory,
-    class_mocker: pytest.MonkeyPatch,
 ) -> E2EResults:
     from tests.e2e.config import TAG_FILTER_INCLUDE_SCENARIO
 
@@ -509,7 +537,6 @@ def e2e_tag_filter_include_results(
         mock_api_server,
         None,
         tmp_path_factory,
-        class_mocker,
         extra_cli_args=["--include", "bgp"],
     )
 
@@ -518,7 +545,6 @@ def e2e_tag_filter_include_results(
 def e2e_tag_filter_exclude_results(
     mock_api_server: MockAPIServer,
     tmp_path_factory: pytest.TempPathFactory,
-    class_mocker: pytest.MonkeyPatch,
 ) -> E2EResults:
     from tests.e2e.config import TAG_FILTER_EXCLUDE_SCENARIO
 
@@ -527,7 +553,6 @@ def e2e_tag_filter_exclude_results(
         mock_api_server,
         None,
         tmp_path_factory,
-        class_mocker,
         extra_cli_args=["--exclude", "osp*"],
     )
 
@@ -536,7 +561,6 @@ def e2e_tag_filter_exclude_results(
 def e2e_tag_filter_combined_results(
     mock_api_server: MockAPIServer,
     tmp_path_factory: pytest.TempPathFactory,
-    class_mocker: pytest.MonkeyPatch,
 ) -> E2EResults:
     from tests.e2e.config import TAG_FILTER_COMBINED_SCENARIO
 
@@ -545,7 +569,6 @@ def e2e_tag_filter_combined_results(
         mock_api_server,
         None,
         tmp_path_factory,
-        class_mocker,
         extra_cli_args=["--include", "api-only"],
     )
 
@@ -554,7 +577,6 @@ def e2e_tag_filter_combined_results(
 def e2e_tag_filter_no_match_results(
     mock_api_server: MockAPIServer,
     tmp_path_factory: pytest.TempPathFactory,
-    class_mocker: pytest.MonkeyPatch,
 ) -> E2EResults:
     from tests.e2e.config import TAG_FILTER_NO_MATCH_SCENARIO
 
@@ -563,6 +585,20 @@ def e2e_tag_filter_no_match_results(
         mock_api_server,
         None,
         tmp_path_factory,
-        class_mocker,
         extra_cli_args=["--exclude", "bgpORospf"],
+    )
+
+
+@pytest.fixture(scope="class")
+def e2e_pyats_nxos_d2d_results(
+    mock_api_server: MockAPIServer,
+    user_testbed: str,
+    tmp_path_factory: pytest.TempPathFactory,
+) -> E2EResults:
+    """Execute the PyATS NX-OS D2D scenario once and cache results for the class."""
+    return _run_e2e_scenario(
+        PYATS_NXOS_D2D_SCENARIO,
+        mock_api_server,
+        user_testbed,
+        tmp_path_factory,
     )

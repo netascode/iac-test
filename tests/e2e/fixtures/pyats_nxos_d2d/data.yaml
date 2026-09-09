@@ -1,0 +1,21 @@
+nxos:
+  devices:
+    - name: nxos-switch-01
+      url: https://10.1.1.1
+      configuration:
+        interfaces:
+          port_channels:
+            - id: 1
+              description: "Po1 Uplink"
+            - id: 2
+              description: "Po2 MLAG Peer Link"
+          ethernets:
+            - id: "1/31"
+              channel_group: 1
+              channel_group_mode: active
+            - id: "1/39"
+              channel_group: 2
+              channel_group_mode: active
+            - id: "1/41"
+              channel_group: 2
+              channel_group_mode: active
