@@ -1,6 +1,6 @@
 [project]
 name = "nac-test"
-version = "2.1.0b1"
+version = "2.1.0b2"
 description = "A CLI tool to render to execute Robot Framework (RF) and PyATS tests for Network as Code (NAC)."
 license = { text = "MPL-2.0" }
 readme = "README.md"
@@ -31,7 +31,7 @@ classifiers = [
 dependencies = [
     "Jinja2>=3.1.6",
     "jmespath>=1.0.1",
-    "nac-test-pyats-common>=0.3.0",
+    "nac-test-pyats-common>=0.4.0b2",
     "nac-yaml>=2.0.0",
     "robotframework>=7.4.2",
     "robotframework-jmespath",
@@ -70,7 +70,6 @@ dev = [
     "bandit[toml]>=1.9.4",
     "flask>=3.1.3",
     "mypy>=1.17.1",
-    "nac-test-pyats-common>=0.1.0",  # Required for integration tests
     "pre-commit>=4.6.0",
     "pytest>=9.0.3",
     "pytest-cov~=7.1",
@@ -92,7 +91,7 @@ override-dependencies = [
 ]
 # Dependency cooldown: ignore packages uploaded less than 3 days ago.
 exclude-newer = "3 days"
-exclude-newer-package = { nac-yaml = false }
+exclude-newer-package = { nac-yaml = false,  nac-test-pyats-common = false }
 
 [tool.coverage.run]
 source = ["nac_test"]
