@@ -28,7 +28,7 @@ def broker(tmp_path: Path) -> ConnectionBroker:
     b.testbed = MagicMock()
     b.testbed.devices = {"router-1": MagicMock(), "router-2": MagicMock()}
     for hostname in b.testbed.devices:
-        b.connection_locks[hostname] = asyncio.Lock()
+        b._device_locks[hostname] = asyncio.Lock()
     return b
 
 
@@ -307,7 +307,7 @@ def test_execute_command_disconnects_on_execution_failure(
     cache.get.return_value = None
     broker.command_cache["router-1"] = cache
     broker._get_connection = AsyncMock(return_value=MagicMock())  # type: ignore[method-assign]
-    broker._disconnect_device = AsyncMock()  # type: ignore[method-assign]
+    broker._disconnect_device_internal = AsyncMock()  # type: ignore[method-assign]
 
     async def _run() -> None:
         loop = asyncio.get_event_loop()
@@ -326,7 +326,7 @@ def test_execute_command_disconnects_on_execution_failure(
     with pytest.raises(Exception, match="timeout"):
         asyncio.run(_run())
 
-    broker._disconnect_device.assert_called_once_with("router-1")
+    broker._disconnect_device_internal.assert_called_once_with("router-1")
 
 
 # ---------------------------------------------------------------------------
@@ -365,7 +365,7 @@ class TestExecuteCommandRetry:
         from unicon.core.errors import ConnectionError as UniconConnectionError
 
         broker._get_connection = AsyncMock(side_effect=[MagicMock(), MagicMock()])  # type: ignore[method-assign]
-        broker._disconnect_device = AsyncMock()  # type: ignore[method-assign]
+        broker._disconnect_device_internal = AsyncMock()  # type: ignore[method-assign]
 
         result = _run_execute(
             broker,
@@ -376,7 +376,7 @@ class TestExecuteCommandRetry:
 
         assert result == "live output"
         assert broker._get_connection.await_count == 2
-        broker._disconnect_device.assert_awaited_once_with("router-1")
+        broker._disconnect_device_internal.assert_awaited_once_with("router-1")
 
     def test_retry_result_is_cached(self, broker: ConnectionBroker) -> None:
         """The retry's output lands in a live cache, not the one disconnect dropped."""
@@ -388,7 +388,7 @@ class TestExecuteCommandRetry:
         async def _disconnect(hostname: str) -> None:
             broker.command_cache.pop(hostname, None)
 
-        broker._disconnect_device = AsyncMock(side_effect=_disconnect)  # type: ignore[method-assign]
+        broker._disconnect_device_internal = AsyncMock(side_effect=_disconnect)  # type: ignore[method-assign]
 
         result = _run_execute(
             broker,
@@ -404,7 +404,7 @@ class TestExecuteCommandRetry:
         from unicon.core.errors import ConnectionError as UniconConnectionError
 
         broker._get_connection = AsyncMock(side_effect=[MagicMock(), MagicMock()])  # type: ignore[method-assign]
-        broker._disconnect_device = AsyncMock()  # type: ignore[method-assign]
+        broker._disconnect_device_internal = AsyncMock()  # type: ignore[method-assign]
 
         with pytest.raises(UniconConnectionError):
             _run_execute(
@@ -419,7 +419,7 @@ class TestExecuteCommandRetry:
 
         assert broker._get_connection.await_count == 2
         # Both attempts tear the connection down; nothing dead is left cached
-        assert broker._disconnect_device.await_count == 2
+        assert broker._disconnect_device_internal.await_count == 2
 
     def test_does_not_retry_command_rejection(self, broker: ConnectionBroker) -> None:
         """A rejected command is not retried - a fresh session rejects it too.
@@ -430,7 +430,7 @@ class TestExecuteCommandRetry:
         from unicon.core.errors import SubCommandFailure
 
         broker._get_connection = AsyncMock(return_value=MagicMock())  # type: ignore[method-assign]
-        broker._disconnect_device = AsyncMock()  # type: ignore[method-assign]
+        broker._disconnect_device_internal = AsyncMock()  # type: ignore[method-assign]
 
         with pytest.raises(SubCommandFailure):
             _run_execute(
@@ -444,13 +444,40 @@ class TestExecuteCommandRetry:
     ) -> None:
         """An error that is neither rejection nor transport disconnects but is not retried."""
         broker._get_connection = AsyncMock(return_value=MagicMock())  # type: ignore[method-assign]
-        broker._disconnect_device = AsyncMock()  # type: ignore[method-assign]
+        broker._disconnect_device_internal = AsyncMock()  # type: ignore[method-assign]
 
         with pytest.raises(RuntimeError, match="broker bug"):
             _run_execute(broker, "router-1", "show version", RuntimeError("broker bug"))
 
         assert broker._get_connection.await_count == 1
-        broker._disconnect_device.assert_awaited_once_with("router-1")
+        broker._disconnect_device_internal.assert_awaited_once_with("router-1")
+
+    def test_retry_path_stays_under_device_lock(self, broker: ConnectionBroker) -> None:
+        """_get_connection on both attempts must run under _device_locks[hostname].
+
+        This pins the contract that _get_connection and _run_and_cache are
+        lock-free — callers hold the lock. If a future change narrows or
+        drops the lock in _execute_command, this test catches it.
+        """
+        from unicon.core.errors import ConnectionError as UniconConnectionError
+
+        observed: list[bool] = []
+        broker._disconnect_device_internal = AsyncMock()  # type: ignore[method-assign]
+
+        async def _spy(hostname: str) -> MagicMock:
+            observed.append(broker._device_locks[hostname].locked())
+            return MagicMock()
+
+        broker._get_connection = _spy  # type: ignore[method-assign]
+
+        _run_execute(
+            broker,
+            "router-1",
+            "show version",
+            [UniconConnectionError("socket closed"), "live output"],
+        )
+
+        assert observed == [True, True]
 
     def test_connection_errors_are_not_retried(self, broker: ConnectionBroker) -> None:
         """Failure to establish a connection must not double the connect attempts."""

@@ -29,6 +29,7 @@ class TestControllerDefaultsPrefixMapping:
             ("FMC", "defaults.fmc"),
             ("ISE", "defaults.ise"),
             ("IOSXE", "defaults.iosxe"),
+            ("NXOS", "defaults.nxos"),
         ],
     )
     def test_controller_type_maps_to_correct_prefix(

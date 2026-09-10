@@ -410,53 +410,37 @@ class PyATSOrchestrator:
         # Track individual device archives for aggregation
         device_archives = []
 
-        # Determine batch size: use max_workers by default, cap with max_parallel_devices if specified
-        batch_size = self.max_workers
+        # Determine concurrency limit
+        concurrency = self.max_workers
         if self.max_parallel_devices is not None:
-            batch_size = min(self.max_workers, self.max_parallel_devices)
+            concurrency = min(self.max_workers, self.max_parallel_devices)
             logger.info(
-                f"Using user-specified device parallelism cap: {self.max_parallel_devices} (system capacity: {self.max_workers})"
+                f"Using user-specified device parallelism cap: {self.max_parallel_devices} "
+                f"(system capacity: {self.max_workers})"
             )
         else:
-            logger.info(f"Using system-calculated device parallelism: {batch_size}")
-
-        # Batch devices based on calculated batch size
-        device_batches = [
-            devices[i : i + batch_size] for i in range(0, len(devices), batch_size)
-        ]
+            logger.info(f"Using system-calculated device parallelism: {concurrency}")
 
         logger.info(
-            f"Processing {len(devices)} devices in {len(device_batches)} batches (batch size: {batch_size})"
+            f"Processing {len(devices)} devices with concurrency limit {concurrency}"
         )
 
-        # Process each batch sequentially, but devices within batch in parallel
-        for batch_idx, device_batch in enumerate(device_batches):
-            logger.info(
-                f"Processing batch {batch_idx + 1}/{len(device_batches)} with {len(device_batch)} devices"
-            )
+        # Use a flat semaphore over all devices — no batched barriers.
+        # This ensures a fast device finishing early frees a slot immediately
+        # for the next device, rather than waiting for the entire batch.
+        semaphore = asyncio.Semaphore(concurrency)
+        tasks = [
+            device_executor.run_device_job_with_semaphore(device, test_files, semaphore)
+            for device in devices
+        ]
 
-            # Create tasks for all devices in this batch
-            # Use min of max_workers and batch size for semaphore
-            semaphore_size = min(self.max_workers, len(device_batch))
-            semaphore = asyncio.Semaphore(semaphore_size)
-            tasks = [
-                device_executor.run_device_job_with_semaphore(
-                    device, test_files, semaphore
-                )
-                for device in device_batch
-            ]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
 
-            # Wait for all devices in this batch to complete and collect archives
-            batch_results = await asyncio.gather(*tasks, return_exceptions=True)
-
-            # Collect successful archives
-            for result in batch_results:
-                if isinstance(result, Path) and result.exists():
-                    device_archives.append(result)
-                elif isinstance(result, Exception):
-                    logger.error(f"Device execution failed with error: {result}")
-
-            logger.info(f"Completed batch {batch_idx + 1}/{len(device_batches)}")
+        for result in results:
+            if isinstance(result, Path) and result.exists():
+                device_archives.append(result)
+            elif isinstance(result, Exception):
+                logger.error(f"Device execution failed with error: {result}")
 
         # Aggregate all device archives into a single D2D archive
         if device_archives:

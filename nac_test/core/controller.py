@@ -250,6 +250,26 @@ CONTROLLER_REGISTRY: dict[str, ControllerConfig] = {
         defaults_prefix="defaults.iosxe",
         insecure_env_var="IOSXE_INSECURE",
     ),
+    "NXOS": ControllerConfig(
+        display_name="NX-OS",
+        url_env_var="NXOS_HOST",
+        env_var_prefix="NXOS",
+        # Direct device access: there is no controller (APIC/Manager) to
+        # authenticate against first, but device SSH credentials are still
+        # required for detection and for default credential resolution.
+        credential_sets=(
+            CredentialSet(
+                fields={
+                    "url": "NXOS_HOST",
+                    "username": "NXOS_USERNAME",
+                    "password": "NXOS_PASSWORD",
+                },
+                label="Device Host",
+            ),
+        ),
+        defaults_prefix="defaults.nxos",
+        insecure_env_var="NXOS_INSECURE",
+    ),
 }
 
 # Module-level cache for the credential set that was matched during detection.

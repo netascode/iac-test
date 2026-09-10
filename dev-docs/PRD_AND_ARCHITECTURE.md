@@ -5613,7 +5613,7 @@ classDiagram
 
 **Features:**
 
-- **Per-Device Locking**: Ensures one connection per device
+- **Per-Device Locking**: Serialises the full execute → retry cycle per device
 - **Global Semaphore**: Limits total concurrent connections
 - **Resource Calculation**: Auto-calculates capacity based on system resources
 - **Health Checking**: Validates connection health before reuse
@@ -9096,21 +9096,33 @@ max_connections=min(50, len(devices) * 2)
 # 100 devices → max 50 connections (capped at 50)
 ```
 
-**Per-Device Locking:**
+**Per-Device Locking and Concurrency Model:**
+
+A single `_device_locks[hostname]` asyncio.Lock per device serialises the full get-connection → execute → failure-handling → retry cycle inside `_execute_command`. This lock prevents two hazards:
+
+1. **Teardown race** — without a unified lock, a stale caller could tear down a successor's freshly-created connection mid-execute during the reconnect-and-retry window.
+2. **Interleaved PTY I/O** — Unicon's spawn is not thread-safe; concurrent `execute()` calls on the same device interleave I/O on the PTY, corrupting command output.
 
 ```python
-# From connection_broker.py:96-98
-# Initialize connection locks for all devices
+# From connection_broker.py — initialization
 for hostname in self.testbed.devices:
-    self.connection_locks[hostname] = asyncio.Lock()
+    self._device_locks[hostname] = asyncio.Lock()
 
-# Usage during command execution:
-async with self.connection_locks[hostname]:
-    # Only one operation per device at a time
-    # Prevents two callers racing to create the same connection
-    if hostname in self.connected_devices:
-        return self.connected_devices[hostname]
+# From connection_broker.py — _execute_command
+async with self._device_locks[hostname]:
+    connection = await self._get_connection(hostname)    # lock-free
+    return await self._run_and_cache(hostname, conn, cmd)  # lock-free
 ```
+
+**The per-device lock is uncontended by design.** Three mechanisms guarantee this at runtime:
+
+- One subprocess per device with unique hostnames (`orchestrator.py` device-centric execution)
+- `BrokerClient._request_lock` serialises every request within each subprocess
+- Per-device testbeds mean a test cannot address a peer hostname
+
+Per-device sequential execution is a deliberate design choice to avoid overloading devices, not an implementation artefact. The lock is therefore a runtime no-op today — it exists as a correctness invariant against the teardown race, not as active contention management.
+
+Lock ordering: `_device_locks[hostname]` → `connection_semaphore`, never the reverse.
 
 ---
 

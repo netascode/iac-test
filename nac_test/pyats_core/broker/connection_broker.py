@@ -20,7 +20,10 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
-from nac_test.pyats_core.constants import MAX_BROKER_MESSAGE_BYTES
+from nac_test.pyats_core.constants import (
+    BROKER_SHUTDOWN_DEVICE_TIMEOUT,
+    MAX_BROKER_MESSAGE_BYTES,
+)
 from nac_test.pyats_core.ssh.command_cache import CommandCache
 from nac_test.utils import get_or_create_event_loop
 
@@ -55,7 +58,7 @@ class ConnectionBroker:
         # Connection management
         self.testbed: Any | None = None
         self.connected_devices: dict[str, Any] = {}  # hostname -> device connection
-        self.connection_locks: dict[str, asyncio.Lock] = {}
+        self._device_locks: dict[str, asyncio.Lock] = {}
         self.connection_semaphore = asyncio.Semaphore(max_connections)
 
         # Command caching - shared across all clients
@@ -106,9 +109,9 @@ class ConnectionBroker:
 
             logger.info(f"Loaded testbed with {len(self.testbed.devices)} devices")  # type: ignore[attr-defined]
 
-            # Initialize connection locks for all devices
+            # Initialize per-device locks for all devices
             for hostname in self.testbed.devices:  # type: ignore[attr-defined]
-                self.connection_locks[hostname] = asyncio.Lock()
+                self._device_locks[hostname] = asyncio.Lock()
 
         except Exception as e:
             logger.error(f"Failed to load testbed: {e}", exc_info=True)
@@ -256,10 +259,17 @@ class ConnectionBroker:
         disconnecting, reconnecting and retrying the command exactly once,
         which recovers the current request instead of only cleaning up for the
         next one.
+
+        A single per-device lock serialises the entire get-connection →
+        execute → failure-handling → retry cycle.  This prevents two hazards:
+        (1) interleaved PTY I/O from concurrent execute() calls on Unicon's
+        non-thread-safe spawn, and (2) a stale caller tearing down a
+        successor's connection during the reconnect-and-retry window.
+        Cross-device parallelism is unaffected.
         """
         cache = self._get_command_cache(hostname)
 
-        # Check cache first
+        # Check cache first (no lock needed — cache is per-device and read-only here)
         cached_output = cache.get(cmd)
         if cached_output is not None:
             self.stats_command_cache_hits += 1
@@ -270,39 +280,56 @@ class ConnectionBroker:
         self.stats_command_cache_misses += 1
         logger.debug(f"Broker cache miss for '{cmd}' on {hostname}, executing...")
 
-        # Connection establishment errors are never retried here - only the
-        # execution itself is, and only when the session looks dead.
-        connection = await self._get_connection(hostname)
-        try:
-            return await self._run_and_cache(hostname, connection, cmd)
-        except Exception as e:
-            if not self._is_transport_failure(e):
-                raise
-            logger.warning(
-                f"Transport failure executing '{cmd}' on {hostname} ({e}); "
-                f"reconnecting and retrying once"
-            )
+        if hostname not in self._device_locks:
+            self._device_locks[hostname] = asyncio.Lock()
 
-        # Final attempt. The failed attempt above disconnected the device, so
-        # this creates a fresh connection. Failures propagate to the caller.
-        connection = await self._get_connection(hostname)
-        return await self._run_and_cache(hostname, connection, cmd)
+        async with self._device_locks[hostname]:
+            # Re-check cache under lock — another caller may have populated it
+            cached_output = cache.get(cmd)
+            if cached_output is not None:
+                self.stats_command_cache_hits += 1
+                logger.debug(f"Broker cache hit (under lock) for '{cmd}' on {hostname}")
+                return cached_output
+
+            connection = await self._get_connection(hostname)
+            try:
+                return await self._run_and_cache(hostname, connection, cmd)
+            except Exception as e:
+                if not self._is_transport_failure(e):
+                    raise
+                logger.warning(
+                    f"Transport failure executing '{cmd}' on {hostname} ({e}); "
+                    f"reconnecting and retrying once"
+                )
+
+            # Final attempt — the failed attempt disconnected the device, so
+            # this creates a fresh connection. Failures propagate to the caller.
+            connection = await self._get_connection(hostname)
+            return await self._run_and_cache(hostname, connection, cmd)
 
     async def _run_and_cache(self, hostname: str, connection: Any, cmd: str) -> str:
         """Run a command on a connection once and cache its output.
 
+        The caller must hold ``_device_locks[hostname]``.
+
         Raises:
-            Exception: Whatever the device layer raised, after tearing the
-                connection down so it is not handed to the next caller.
+            SubCommandFailure: Re-raised as-is. The device answered and rejected
+                the command, so the session and its cache are left intact.
+            Exception: Any other failure, after tearing the connection down so it
+                is not handed to the next caller.
         """
+        from unicon.core.errors import SubCommandFailure
+
         # Execute command in thread pool (since Unicon is synchronous)
         loop = get_or_create_event_loop()
         try:
             output = await loop.run_in_executor(None, connection.execute, cmd)
         except Exception as e:
+            if isinstance(e, SubCommandFailure):
+                logger.warning(f"Command rejected by {hostname} (session intact): {e}")
+                raise
             logger.error(f"Command execution failed on {hostname}: {e}")
-            # Try to reconnect on failure
-            await self._disconnect_device(hostname)
+            await self._disconnect_device_internal(hostname)
             raise
 
         output_str = str(output)
@@ -346,6 +373,9 @@ class ConnectionBroker:
     async def _get_connection(self, hostname: str) -> Any:
         """Get or create connection to device.
 
+        When called from ``_execute_command`` the caller already holds
+        ``_device_locks[hostname]``, so this method must not re-acquire it.
+
         A cached connection is returned as-is, without probing it. Evaluating
         ``device.connected`` performs a live SSH round-trip (~0.37s) on the
         broker's event loop, blocking traffic for every device, and it cannot
@@ -353,26 +383,22 @@ class ConnectionBroker:
         Dead sessions are detected and healed by ``_execute_command``'s
         reconnect-and-retry instead.
         """
-        if hostname not in self.connection_locks:
-            self.connection_locks[hostname] = asyncio.Lock()
-
-        async with self.connection_locks[hostname]:
-            # Return existing connection
-            if hostname in self.connected_devices:
-                self.stats_connection_cache_hits += 1
-                logger.info(
-                    f"[BROKER] Reusing existing connection for {hostname} "
-                    f"(total connections: {len(self.connected_devices)})"
-                )
-                return self.connected_devices[hostname]
-
-            # Create new connection
-            self.stats_connection_cache_misses += 1
+        # Return existing connection
+        if hostname in self.connected_devices:
+            self.stats_connection_cache_hits += 1
             logger.info(
-                f"[BROKER] Creating NEW connection for {hostname} "
-                f"(current connections: {len(self.connected_devices)})"
+                f"[BROKER] Reusing existing connection for {hostname} "
+                f"(total connections: {len(self.connected_devices)})"
             )
-            return await self._create_connection(hostname)
+            return self.connected_devices[hostname]
+
+        # Create new connection
+        self.stats_connection_cache_misses += 1
+        logger.info(
+            f"[BROKER] Creating NEW connection for {hostname} "
+            f"(current connections: {len(self.connected_devices)})"
+        )
+        return await self._create_connection(hostname)
 
     async def _create_connection(self, hostname: str) -> Any:
         """Create new connection to device using testbed."""
@@ -422,16 +448,20 @@ class ConnectionBroker:
 
     async def _ensure_connection(self, hostname: str) -> tuple[bool, str]:
         """Ensure device is connected, return (success, error_message)."""
+        if hostname not in self._device_locks:
+            self._device_locks[hostname] = asyncio.Lock()
+
         try:
-            await self._get_connection(hostname)
+            async with self._device_locks[hostname]:
+                await self._get_connection(hostname)
             return True, ""
         except Exception as e:
             return False, str(e)
 
     async def _disconnect_device(self, hostname: str) -> None:
         """Disconnect from device and clean up."""
-        if hostname in self.connection_locks:
-            async with self.connection_locks[hostname]:
+        if hostname in self._device_locks:
+            async with self._device_locks[hostname]:
                 await self._disconnect_device_internal(hostname)
 
     async def _disconnect_device_internal(self, hostname: str) -> None:
@@ -492,9 +522,21 @@ class ConnectionBroker:
             writer.close()
             await writer.wait_closed()
 
-        # Disconnect all devices
+        # Disconnect all devices — bounded so shutdown doesn't block on a
+        # device lock held by an in-flight execute.  Note: an uncancellable
+        # run_in_executor call will still block in asyncio.run's
+        # shutdown_default_executor; this covers cancellable lock holders and
+        # ensures we log rather than hang silently.
         for hostname in list(self.connected_devices.keys()):
-            await self._disconnect_device(hostname)
+            try:
+                await asyncio.wait_for(
+                    self._disconnect_device(hostname),
+                    timeout=BROKER_SHUTDOWN_DEVICE_TIMEOUT,
+                )
+            except asyncio.TimeoutError:
+                logger.warning(
+                    f"Timed out waiting for device lock on {hostname} during shutdown"
+                )
 
         # Stop socket server
         if self.server:

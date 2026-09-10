@@ -109,6 +109,15 @@ CONTROLLER_CREDENTIALS: list[tuple[str, dict[str, str], str]] = [
         },
         "session",
     ),
+    (
+        "NXOS",
+        {
+            "NXOS_HOST": "192.168.1.2",
+            "NXOS_USERNAME": "admin",
+            "NXOS_PASSWORD": "pass",
+        },
+        "session",
+    ),
 ]
 
 # Partial credential scenarios for error testing
@@ -126,6 +135,11 @@ PARTIAL_CREDENTIALS: list[tuple[str, dict[str, str], str]] = [
         "missing username",
     ),
     ("CC", {"CC_URL": "https://cc.local"}, "URL only"),
+    (
+        "NXOS",
+        {"NXOS_HOST": "192.168.1.2", "NXOS_USERNAME": "admin"},
+        "missing password",
+    ),
 ]
 
 
@@ -713,6 +727,7 @@ class TestGetControllerUrl:
             ("FMC", "FMC_URL"),
             ("ISE", "ISE_URL"),
             ("IOSXE", "IOSXE_URL"),
+            ("NXOS", "NXOS_HOST"),
         ],
     )
     def test_get_controller_url_returns_correct_value(

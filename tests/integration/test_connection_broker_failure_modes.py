@@ -27,6 +27,7 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
+from unicon.core.errors import SubCommandFailure
 
 from nac_test.pyats_core.broker.broker_client import BrokerClient
 from nac_test.pyats_core.broker.connection_broker import ConnectionBroker
@@ -71,7 +72,7 @@ def make_broker(
         broker.testbed = MagicMock()
         broker.testbed.devices = devices
         for hostname in devices:
-            broker.connection_locks[hostname] = asyncio.Lock()
+            broker._device_locks[hostname] = asyncio.Lock()
         return broker
 
     return _factory
@@ -680,3 +681,144 @@ class TestCleanup:
 
         assert broker.connected_devices == {}
         assert not broker.socket_path.exists()
+
+
+class TestCommandRejectionVsTransportFailure:
+    """Contrast SubCommandFailure (device rejects command, session healthy) with
+    transport-level failures (SSH dies, cache must be wiped).
+
+    Both tests populate the command cache with a successful first command, then
+    trigger a failure on a second command and verify the divergent outcomes.
+    """
+
+    def test_sub_command_failure_preserves_connection_and_cache(
+        self,
+        make_broker: Any,
+        good_device: MagicMock,
+    ) -> None:
+        """SubCommandFailure re-raises to the client but does NOT disconnect
+        the device or wipe the command cache."""
+        broker: ConnectionBroker = make_broker({"router-1": good_device})
+
+        async def _run() -> None:
+            loop = asyncio.get_event_loop()
+
+            async def _body() -> None:
+                with patch(
+                    "nac_test.pyats_core.broker.connection_broker.get_or_create_event_loop",
+                    return_value=loop,
+                ):
+                    with _patch_executor(loop):
+                        async with BrokerClient(
+                            socket_path=broker.socket_path
+                        ) as client:
+                            # 1) Successful command — populates cache
+                            good_device.execute.return_value = "good output"
+                            r1 = await asyncio.wait_for(
+                                client._send_request(
+                                    {
+                                        "command": "execute",
+                                        "hostname": "router-1",
+                                        "cmd": "show version",
+                                    }
+                                ),
+                                timeout=2.0,
+                            )
+                            assert r1["status"] == "success"
+                            assert r1["result"] == "good output"
+
+                            # 2) SubCommandFailure on second command
+                            good_device.execute.side_effect = SubCommandFailure(
+                                "Invalid command at '^' marker"
+                            )
+                            err = await _expect_broker_error(
+                                client,
+                                {
+                                    "command": "execute",
+                                    "hostname": "router-1",
+                                    "cmd": "show bgp all",
+                                },
+                                timeout=2.0,
+                            )
+                            assert "Invalid command" in err
+
+                            # Connection still present
+                            assert "router-1" in broker.connected_devices
+
+                            # First command's cache entry still intact
+                            cache = broker.command_cache.get("router-1")
+                            assert cache is not None
+                            assert cache.get("show version") == "good output"
+
+                            # Device was never disconnected
+                            good_device.disconnect.assert_not_called()
+
+            await _run_broker(broker, _body())
+
+        asyncio.run(_run())
+
+    def test_transport_failure_disconnects_and_wipes_cache(
+        self,
+        make_broker: Any,
+        good_device: MagicMock,
+    ) -> None:
+        """A transport-level exception (e.g. OSError) disconnects the device
+        and wipes the command cache — regression guard for existing behavior."""
+        broker: ConnectionBroker = make_broker({"router-1": good_device})
+
+        async def _run() -> None:
+            loop = asyncio.get_event_loop()
+
+            async def _body() -> None:
+                with patch(
+                    "nac_test.pyats_core.broker.connection_broker.get_or_create_event_loop",
+                    return_value=loop,
+                ):
+                    with _patch_executor(loop):
+                        async with BrokerClient(
+                            socket_path=broker.socket_path
+                        ) as client:
+                            # 1) Successful command — populates cache
+                            good_device.execute.return_value = "good output"
+                            r1 = await asyncio.wait_for(
+                                client._send_request(
+                                    {
+                                        "command": "execute",
+                                        "hostname": "router-1",
+                                        "cmd": "show version",
+                                    }
+                                ),
+                                timeout=2.0,
+                            )
+                            assert r1["status"] == "success"
+                            assert r1["result"] == "good output"
+
+                            # 2) Transport failure on second command
+                            good_device.execute.side_effect = OSError(
+                                "Socket is closed"
+                            )
+                            err = await _expect_broker_error(
+                                client,
+                                {
+                                    "command": "execute",
+                                    "hostname": "router-1",
+                                    "cmd": "show interfaces",
+                                },
+                                timeout=2.0,
+                            )
+                            assert "Socket is closed" in err
+
+                            # OSError is a transport failure, so this exercises the full #899 path:
+                            # fail -> disconnect -> reconnect -> fail -> disconnect -> raise
+                            assert good_device.execute.call_count == 3
+                            assert good_device.disconnect.call_count == 2
+
+                            # Connection removed
+                            assert "router-1" not in broker.connected_devices
+
+                            # Command cache wiped for this device
+                            assert "router-1" not in broker.command_cache
+
+            await _run_broker(broker, _body())
+
+        asyncio.run(_run())

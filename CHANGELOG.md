@@ -1,9 +1,14 @@
-# unreleased
+# Unreleased
 
 ## Performance
 
 - yaml parser: enabled C-accelerated parser/emitter (`ruamel.yaml.clib` / `pure=False`) in YAML utilities. Speeds up YAML loading and data model merge operations by ~3x on CPython.
 - pyats broker: removed the per-command SSH liveness probe from the connection broker; dead sessions are now recovered by reconnecting and retrying the command once. Removes ~0.77s of event-loop blocking per test and the fleet-wide slowdown it caused.
+- pyats broker: command rejections (SubCommandFailure) no longer trigger a full SSH disconnect and cache wipe; only transport-level failures do. Eliminates a 4.7x per-failure penalty on devices with unsupported commands.
+
+## Bug Fixes
+
+- pyats broker: unified per-device locking to prevent a stale caller from tearing down a successor's connection during the reconnect-and-retry window. The execute and disconnect paths previously used separate locks over two halves of one critical section.
 
 # 2.1.0b1
 
@@ -11,6 +16,10 @@
 
 - robot rendering: added support for dicts as parent_key in `iterate_list_chunked` 
 - add support for SDWAN token authentication for pyATS test cases via SDWAN_USERNAME & SDWAN_API_TOKEN
+
+## Performance
+
+- Replace batched device barriers with flat semaphore for D2D execution, eliminating idle time when devices finish at different speeds (#901)
 
 ## Bug Fixes
 
