@@ -8,7 +8,7 @@ resolution-markers = [
 ]
 
 [options]
-exclude-newer = "2026-09-06T15:45:58.046469Z"
+exclude-newer = "2026-09-07T11:18:58.195977Z"
 exclude-newer-span = "P3D"
 
 [options.exclude-newer-package]
@@ -1994,7 +1994,7 @@ wheels = [
 
 [[package]]
 name = "nac-test"
-version = "2.1.0b1"
+version = "2.1.0b2"
 source = { editable = "." }
 dependencies = [
     { name = "aiofiles" },
@@ -2061,7 +2061,7 @@ requires-dist = [
     { name = "lxml", specifier = ">=6.1.0" },
     { name = "markdown", specifier = ">=3.10.2" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.17.1" },
-    { name = "nac-test-pyats-common", specifier = ">=0.4.0b1" },
+    { name = "nac-test-pyats-common", specifier = ">=0.4.0b2" },
     { name = "nac-yaml", specifier = ">=2.0.0" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.6.0" },
     { name = "psutil", specifier = ">=7.2.2" },
@@ -2090,16 +2090,16 @@ provides-extras = ["dev"]
 
 [[package]]
 name = "nac-test-pyats-common"
-version = "0.4.0b1"
+version = "0.4.0b2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "filelock" },
     { name = "httpx" },
     { name = "nac-test" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/38/6f/a9134dbd7244d32c5d4583849efdbedb2d8632bbdef50dd165d12a6c3fff/nac_test_pyats_common-0.4.0b1.tar.gz", hash = "sha256:e17c327496187f734b38a1d5c26246353d44520339161679264e720d96e27841", size = 68923, upload-time = "2026-09-09T15:37:34.677Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/dc/1a/a6caf748bff0fd0cb2a6e5b6b0f796168436466fdefd6e0d03e428268dda/nac_test_pyats_common-0.4.0b2.tar.gz", hash = "sha256:2e8219e4f5412bb20709e061738b8f19794f9813475e344b5a1bed8fee82b47e", size = 71079, upload-time = "2026-09-10T11:13:22.686Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/fd/65/d38437ccf64c644349e815805f99c9e48f0fb3a1afab73fae0b196ed51b6/nac_test_pyats_common-0.4.0b1-py3-none-any.whl", hash = "sha256:25b665a7be9d9d0b95b41f40dc1e8ad45950d3ca4dbf4332be98d2055effcabf", size = 61690, upload-time = "2026-09-09T15:37:33.633Z" },
+    { url = "https://files.pythonhosted.org/packages/da/4f/5ff37f9727365dab066c026d7af603b5d9b090d5ebaba6133bb83e895ead/nac_test_pyats_common-0.4.0b2-py3-none-any.whl", hash = "sha256:bae376c698533fb9593db2b9a4143f1c0a70f9feb29d7143b390849dd73c646a", size = 65560, upload-time = "2026-09-10T11:13:21.768Z" },
 ]
 
 [[package]]
