@@ -540,10 +540,13 @@ class ConnectionBroker:
                 )
 
         if self.connected_devices:
-            await asyncio.gather(*[
-                _bounded_disconnect(hostname)
-                for hostname in list(self.connected_devices.keys())
-            ], return_exceptions=True)
+            await asyncio.gather(
+                *[
+                    _bounded_disconnect(hostname)
+                    for hostname in list(self.connected_devices.keys())
+                ],
+                return_exceptions=True,
+            )
 
         # Stop socket server
         if self.server:
