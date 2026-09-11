@@ -260,6 +260,7 @@ class TestIntegration:
             "SDWANTestBase",
             "IOSXETestBase",
             "NXOSTestBase",
+            "FTDTestBase",
             "IOSTestBase",
         }
 

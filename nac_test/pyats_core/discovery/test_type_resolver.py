@@ -109,6 +109,7 @@ BASE_CLASS_MAPPING: Final[dict[str, TestType]] = {
     "SDWANTestBase": "d2d",  # SD-WAN edge device tests (cEdge/vEdge)
     "IOSXETestBase": "d2d",  # IOS-XE device tests
     "NXOSTestBase": "d2d",  # NX-OS device tests
+    "FTDTestBase": "d2d",  # Firepower Threat Defense (FTD) CLISH device tests
     "IOSTestBase": "d2d",  # Classic IOS device tests
 }
 
