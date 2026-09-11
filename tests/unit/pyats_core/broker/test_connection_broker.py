@@ -752,3 +752,78 @@ class TestBrokerClientRequestLock:
                 await server.wait_closed()
 
         asyncio.run(_run())
+
+
+# ---------------------------------------------------------------------------
+# BrokerClient cancellation and recovery (#925)
+# ---------------------------------------------------------------------------
+
+
+class TestBrokerClientCancellation:
+    """Verify that cancelled requests tear down connection state without deadlocks."""
+
+    def test_cancellation_resets_connection_and_allows_subsequent_commands(
+        self, socket_dir: Path
+    ) -> None:
+        """Cancelled request tears down connection so next command does not queue or corrupt (#925)."""
+        socket_path = socket_dir / "test_cancel.sock"
+
+        async def _run() -> None:
+            # --- Fake broker server ---
+            async def handle_client(
+                reader: asyncio.StreamReader, writer: asyncio.StreamWriter
+            ) -> None:
+                try:
+                    while True:
+                        length_data = await reader.readexactly(4)
+                        msg_len = int.from_bytes(length_data, byteorder="big")
+                        msg_data = await reader.readexactly(msg_len)
+                        request = json.loads(msg_data.decode("utf-8"))
+
+                        cmd = request.get("cmd", "")
+                        if cmd == "hang":
+                            # Never respond — simulate broker hang
+                            await asyncio.sleep(100)
+                        else:
+                            response = json.dumps(
+                                {"status": "success", "result": f"output:{cmd}"}
+                            ).encode("utf-8")
+                            writer.write(struct.pack(">I", len(response)) + response)
+                            await writer.drain()
+                except (asyncio.IncompleteReadError, ConnectionResetError):
+                    pass
+                finally:
+                    writer.close()
+
+            server = await asyncio.start_unix_server(
+                handle_client, path=str(socket_path)
+            )
+
+            try:
+                client = BrokerClient(socket_path=socket_path)
+                await client.connect()
+
+                # Step 1: Start a hanging command and cancel it (simulating timeout)
+                hang_task = asyncio.create_task(
+                    client.execute_command("router-1", "hang")
+                )
+                await asyncio.sleep(0.05)  # Wait for request to be sent
+                hang_task.cancel()
+
+                with pytest.raises(asyncio.CancelledError):
+                    await hang_task
+
+                # Connection should be torn down
+                assert not client._connected
+                assert client.writer is None
+
+                # Step 2: Next command should reconnect cleanly and succeed immediately
+                result = await client.execute_command("router-1", "show ok")
+                assert result == "output:show ok"
+
+                await client.disconnect()
+            finally:
+                server.close()
+                await server.wait_closed()
+
+        asyncio.run(_run())

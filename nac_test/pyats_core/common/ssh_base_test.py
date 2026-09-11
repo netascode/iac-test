@@ -2,6 +2,7 @@
 # Copyright (c) 2025 Daniel Schmidt
 
 import asyncio
+import concurrent.futures
 import json
 import logging
 import os
@@ -342,7 +343,11 @@ class SSHTestBase(NACTestBase):
             future = asyncio.run_coroutine_threadsafe(
                 broker_client.execute_command(hostname, cmd), loop
             )
-            output = future.result(timeout=DEVICE_EXECUTE_TIMEOUT)
+            try:
+                output = future.result(timeout=DEVICE_EXECUTE_TIMEOUT)
+            except (TimeoutError, concurrent.futures.TimeoutError):
+                future.cancel()
+                raise
 
             # Cache the result (thread-safe)
             command_cache.set(cmd, output)

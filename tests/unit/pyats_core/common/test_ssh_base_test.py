@@ -305,7 +305,7 @@ class TestPatchDeviceExecuteForBroker:
         mock_future.result.assert_called_with(timeout=DEVICE_EXECUTE_TIMEOUT)
 
     def test_patched_execute_propagates_timeout_error(self, ssh_instance: Any) -> None:
-        """TimeoutError from broker propagates and failed command is NOT cached."""
+        """TimeoutError from broker cancels the future, propagates, and is NOT cached (#925)."""
         mock_future = Mock()
         mock_future.result = Mock(side_effect=TimeoutError("broker hung"))
 
@@ -316,6 +316,8 @@ class TestPatchDeviceExecuteForBroker:
                 call_after_patch=lambda dev: dev.execute("show version"),
             )
 
+        # The future must be cancelled to avoid zombie coroutines (#925)
+        mock_future.cancel.assert_called_once()
         # The failed command must NOT be cached
         assert ssh_instance.command_cache.get("show version") is None
 

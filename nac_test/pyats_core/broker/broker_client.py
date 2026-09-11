@@ -142,6 +142,10 @@ class BrokerClient:
 
                 return response  # type: ignore[no-any-return]
 
+            except asyncio.CancelledError:
+                # If cancelled mid-request (e.g. caller timeout), teardown socket so subsequent commands don't reuse a corrupted stream
+                self._teardown_connection()
+                raise
             except Exception as e:
                 logger.debug(f"Error communicating with broker: {e}")
                 # Reset connection on error
