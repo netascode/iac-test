@@ -4,6 +4,7 @@
 
 - pyats broker: removed the per-command SSH liveness probe from the connection broker; dead sessions are now recovered by reconnecting and retrying the command once. Removes ~0.77s of event-loop blocking per test and the fleet-wide slowdown it caused.
 - pyats broker: command rejections (SubCommandFailure) no longer trigger a full SSH disconnect and cache wipe; only transport-level failures do. Eliminates a 4.7x per-failure penalty on devices with unsupported commands.
+- pyats broker: disconnect all devices concurrently during broker shutdown via `asyncio.gather`, reducing post-test teardown from O(n × disconnect_time) to O(max(disconnect_time)). Measured 210s → 20s on a 21-device fleet.
 
 ## Bug Fixes
 
