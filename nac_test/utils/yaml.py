@@ -8,6 +8,10 @@ a PyYAML-compatible API while using ruamel.yaml underneath. This allows
 nac-test to avoid depending on PyYAML, which is only available as a transitive
 dependency of PyATS (and thus not installed on Windows).
 
+By using `YAML(typ="safe", pure=False)`, the parser and emitter leverage C
+extensions (`ruamel.yaml.clib`) when available for accelerated performance,
+while seamlessly falling back to pure Python if the C library is not installed.
+
 TODO: This functionality should be moved to the nac-yaml package.
 See: https://github.com/netascode/nac-yaml/issues/41
 """
@@ -20,8 +24,12 @@ from ruamel.yaml.error import YAMLError as YAMLError  # noqa: PLC0414 - re-expor
 
 
 def _create_yaml_dumper() -> YAML:
-    """Create a safe YAML dumper with nac-test defaults."""
-    yaml_dumper = YAML(typ="safe", pure=True)
+    """Create a safe YAML dumper with nac-test defaults.
+
+    Uses C-accelerated emitter via `pure=False` if `ruamel.yaml.clib` is installed,
+    falling back to pure Python otherwise.
+    """
+    yaml_dumper = YAML(typ="safe", pure=False)
     yaml_dumper.default_flow_style = False
     return yaml_dumper
 
@@ -29,7 +37,9 @@ def _create_yaml_dumper() -> YAML:
 def safe_load(stream: str | IO[str]) -> Any:
     """Load YAML safely from a string or file-like object.
 
-    This is equivalent to PyYAML's `yaml.safe_load()` function.
+    This is equivalent to PyYAML's `yaml.safe_load()` function. Uses C-accelerated
+    parser via `pure=False` if `ruamel.yaml.clib` is installed, falling back to
+    pure Python otherwise.
 
     Args:
         stream: A YAML string or file-like object to parse.
@@ -44,7 +54,7 @@ def safe_load(stream: str | IO[str]) -> Any:
         >>> safe_load("- item1\\n- item2")
         ['item1', 'item2']
     """
-    y = YAML(typ="safe", pure=True)
+    y = YAML(typ="safe", pure=False)
     if isinstance(stream, str):
         stream = StringIO(stream)
     return y.load(stream)

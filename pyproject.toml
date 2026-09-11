@@ -40,6 +40,7 @@ dependencies = [
     "robotframework-pabot>=5.2.2,<6",   # <6 to avoid major upgrades with possibly breaking changes in CLI arg parsing
     "robotframework-requests>=0.9.7",
     "ruamel.yaml>=0.18.15",
+    "ruamel.yaml.clib>=0.2.12; platform_python_implementation == 'CPython'",
     "typer>=0.17.4",
     "scrapli-netconf>=2026.1.12",
     "asyncssh>=2.22.0",
