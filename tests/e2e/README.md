@@ -43,6 +43,7 @@ E2ECombinedTestBase (ABC)          # 62 common tests for all scenarios
     ├── TestE2EPyatsApiOnly        # PyATS API only (ACI), symlink test (#656)
     ├── TestE2EPyatsD2dOnly        # PyATS D2D only
     ├── TestE2EPyatsCc             # Catalyst Center (API+D2D)
+    ├── TestE2EPyatsNxosD2d        # NX-OS D2D (SSH)
     ├── TestE2EVerbose             # --verbose flag (DEBUG level)
     ├── TestE2EVerboseWithInfo     # --verbose --loglevel INFO
     ├── TestE2EDryRun              # --dry-run Robot+PyATS
@@ -77,8 +78,10 @@ tests/e2e/
 │   ├── mock_api_config.yaml   # Default endpoint config (SDWAN, ACI, CC)
 │   ├── mock_api_config_preflight_401.yaml  # Auth-failure endpoint config
 │   └── mock_data/
-│       └── iosxe/
-│           └── iosxe_mock_data.yaml  # Canned show command responses
+│       ├── iosxe/
+│       │   └── iosxe_mock_data.yaml  # Canned show command responses
+│       └── nxos/
+│           └── nxos_mock_data.yaml   # Canned show command responses for NX-OS
 └── fixtures/
     ├── success/           # All tests pass
     ├── failure/           # All tests fail
@@ -87,6 +90,7 @@ tests/e2e/
     ├── pyats_api_only/    # PyATS API only (ACI), includes symlink
     ├── pyats_d2d_only/    # PyATS D2D only
     ├── pyats_cc/          # Catalyst Center (API+D2D)
+    ├── pyats_nxos_d2d/    # NX-OS D2D (SSH)
     ├── verbose/           # --verbose / --loglevel tests
     ├── dry_run_robot_fail/ # Dry-run Robot validation failure
     ├── preflight_failure/  # Pre-flight 401 auth failure
@@ -175,6 +179,7 @@ The test suite includes **14 scenarios** defined in `config.py` via the `E2EScen
 | PYATS_API_ONLY | ACI | — | 1 pass | — | 0 | Symlink test (#656) |
 | PYATS_D2D_ONLY | SDWAN | — | — | 1 pass | 0 | |
 | PYATS_CC | CC | — | 1 pass | 2 pass | 0 | Catalyst Center, 2 devices |
+| PYATS_NXOS_D2D | NXOS | — | — | 1 pass | 0 | NX-OS switch (SSH) |
 | VERBOSE | ACI | 1 pass | 1 pass | — | 0 | --verbose flag |
 | VERBOSE_WITH_INFO | ACI | 1 pass | 1 pass | — | 0 | --verbose --loglevel INFO |
 | DRY_RUN | SDWAN | 2 valid | — | — | 0 | --dry-run, no execution |
@@ -195,9 +200,9 @@ The test suite includes **14 scenarios** defined in `config.py` via the `E2EScen
 ### E2E-Specific Fixtures (from `tests/e2e/conftest.py`)
 
 **Session scope:**
-- `sdwan_user_testbed`: Temporary testbed YAML with mock Unicon devices (sd-dc-c8kv-01, sd-dc-c8kv-02)
+- `user_testbed`: Temporary testbed YAML with mock Unicon devices (sd-dc-c8kv-01, sd-dc-c8kv-02, nxos-switch-01)
 
-**Class scope (one per scenario — 15 fixtures):**
+**Class scope (one per scenario — 16 fixtures):**
 - `e2e_success_results`: Success scenario execution results
 - `e2e_failure_results`: All-fail scenario execution results
 - `e2e_mixed_results`: Mixed pass/fail scenario execution results
@@ -206,6 +211,7 @@ The test suite includes **14 scenarios** defined in `config.py` via the `E2EScen
 - `e2e_pyats_api_only_results`: PyATS API-only scenario execution results
 - `e2e_pyats_d2d_only_results`: PyATS D2D-only scenario execution results
 - `e2e_pyats_cc_results`: Catalyst Center scenario execution results
+- `e2e_pyats_nxos_d2d_results`: PyATS NX-OS D2D scenario execution results
 - `e2e_verbose_results`: Verbose flag scenario execution results
 - `e2e_verbose_with_info_results`: Verbose with INFO loglevel execution results
 - `e2e_dry_run_results`: Dry-run scenario execution results
@@ -234,7 +240,7 @@ Follow these steps to add a new E2E test scenario:
        data_path=f"{_FIXTURE_BASE}/new_scenario/data.yaml",
        templates_path=f"{_FIXTURE_BASE}/new_scenario/templates",
        requires_testbed=True,  # True if D2D tests, False otherwise
-       architecture="SDWAN",   # "SDWAN", "ACI", or "CC"
+       architecture="SDWAN",  # "SDWAN", "ACI", or "CC"
        expected_exit_code=0,
        expected_robot_passed=1,
        expected_robot_failed=0,
@@ -251,15 +257,16 @@ Follow these steps to add a new E2E test scenario:
    @pytest.fixture(scope="class")
    def e2e_new_scenario_results(
        mock_api_server: MockAPIServer,
-       sdwan_user_testbed: str,  # omit if no D2D tests
+       user_testbed: str,  # omit if no D2D tests
        tmp_path_factory: pytest.TempPathFactory,
    ) -> E2EResults:
        """Execute the new scenario once and cache results for the class."""
        from tests.e2e.config import NEW_SCENARIO
+
        return _run_e2e_scenario(
            NEW_SCENARIO,
            mock_api_server,
-           sdwan_user_testbed,  # or None if no D2D tests
+           user_testbed,  # or None if no D2D tests
            tmp_path_factory,
        )
    ```

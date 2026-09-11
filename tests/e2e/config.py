@@ -565,3 +565,20 @@ TAG_FILTER_NO_MATCH_SCENARIO = E2EScenario(
     expected_pyats_d2d_failed=0,
     expected_pyats_d2d_skipped=0,
 )
+
+PYATS_NXOS_D2D_SCENARIO = E2EScenario(
+    name="pyats_nxos_d2d",
+    description="PyATS NX-OS D2D - SSH to NX-OS device, no Robot or API tests",
+    data_path=f"{_FIXTURE_BASE}/pyats_nxos_d2d/data.yaml",
+    templates_path=f"{_FIXTURE_BASE}/pyats_nxos_d2d/templates",
+    requires_testbed=True,
+    architecture="NXOS",
+    expected_exit_code=0,
+    expected_robot_passed=0,
+    expected_robot_failed=0,
+    expected_pyats_api_passed=0,
+    expected_pyats_api_failed=0,
+    expected_pyats_d2d_passed=1,
+    expected_pyats_d2d_failed=0,
+    expected_d2d_hostnames=["nxos-switch-01"],
+)

@@ -1288,6 +1288,24 @@ class TestE2EPyatsCc(E2ECombinedTestBase):
 
 
 # =============================================================================
+# PYATS NX-OS D2D SCENARIO TESTS
+# =============================================================================
+
+
+class TestE2EPyatsNxosD2d(E2ECombinedTestBase):
+    """E2E tests for the PyATS NX-OS direct-to-device SSH scenario.
+
+    Scenario: PyATS NX-OS D2D, no Robot or API tests
+    Expected: CLI exits with code 0, 100% success rate
+    """
+
+    @pytest.fixture
+    def results(self, e2e_pyats_nxos_d2d_results: E2EResults) -> E2EResults:
+        """Provide PyATS NX-OS D2D scenario results."""
+        return e2e_pyats_nxos_d2d_results
+
+
+# =============================================================================
 # VERBOSE FLAG SCENARIO TESTS
 # =============================================================================
 

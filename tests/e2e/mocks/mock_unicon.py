@@ -33,7 +33,7 @@ def extend_mock_data(mock_data: dict[str, Any], mock_data_dir: str) -> dict[str,
 valid = {
     "ios": {"state": "exec"},
     "iosxe": {"state": "enable_isr"},
-    "nxos": {"state": "login"},
+    "nxos": {"state": "exec"},
     "iosxr": {"state": "login"},
     "vos": {"state": "vos_connect"},
 }
