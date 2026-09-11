@@ -39,7 +39,7 @@ class TestCleanupStaleTestArtifacts:
             ("nac_test_job_d2d_20250224.zip", True),
             (PYATS_RESULTS_DIRNAME, False),
             ("robot_results", False),
-            ("merged_data_model.yaml", True),
+            ("merged_data_model.json", True),
         ],
     )
     def test_preserves_expected_paths(

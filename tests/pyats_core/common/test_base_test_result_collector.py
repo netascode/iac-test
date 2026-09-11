@@ -25,7 +25,7 @@ class TestResultCollectorInitialization:
 
         # Point to non-existent file to trigger fallback
         monkeypatch.setenv(
-            "MERGED_DATA_MODEL_TEST_VARIABLES_FILEPATH", "/nonexistent/path.yaml"
+            "MERGED_DATA_MODEL_TEST_VARIABLES_FILEPATH", "/nonexistent/path.json"
         )
 
         class TestClass(NACTestBase):

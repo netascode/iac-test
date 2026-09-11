@@ -314,7 +314,7 @@ def test_merged_data_model_creates_default_filename(tmp_path: Path) -> None:
     templates_path = "tests/integration/fixtures/templates/"
     output_model_path = tmp_path / MERGED_DATA_FILENAME
     data_dir = Path("tests/integration/fixtures/data_merge")
-    expected_model_path = data_dir / "result.yaml"
+    expected_model_path = data_dir / "result.json"
 
     result = runner.invoke(
         nac_test.cli.main.app,
@@ -340,6 +340,11 @@ def test_merged_data_model_creates_default_filename(tmp_path: Path) -> None:
     assert filecmp.cmp(output_model_path, expected_model_path, shallow=False), (
         f"Merged data model content should match expected content from "
         f"{expected_model_path}"
+    )
+    # By default (NAC_TEST_DUMP_YAML_DATA_MODEL unset) no YAML companion is written.
+    # The env-var-enabled case is covered in test_yaml_data_model_dump.py.
+    assert not output_model_path.with_suffix(".yaml").exists(), (
+        "YAML data model should not be created unless NAC_TEST_DUMP_YAML_DATA_MODEL is set"
     )
 
 

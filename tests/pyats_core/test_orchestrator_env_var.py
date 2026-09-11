@@ -15,8 +15,7 @@ from nac_test.core.types import AuthMethod, ControllerContext
 from nac_test.pyats_core.constants import ENV_TEST_DIR
 from nac_test.pyats_core.execution.subprocess_runner import SubprocessRunner
 from nac_test.pyats_core.orchestrator import PyATSOrchestrator
-
-from .conftest import PyATSTestDirs
+from tests.conftest import PyATSTestDirs
 
 
 class TestOrchestratorEnvVarProcesses:

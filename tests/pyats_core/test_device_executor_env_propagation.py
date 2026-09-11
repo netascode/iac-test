@@ -14,8 +14,7 @@ from nac_test.pyats_core.execution.device.device_executor import DeviceExecutor
 from nac_test.pyats_core.execution.device.testbed_generator import TestbedGenerator
 from nac_test.pyats_core.execution.job_generator import JobGenerator
 from nac_test.pyats_core.execution.subprocess_runner import SubprocessRunner
-
-from .conftest import PyATSTestDirs
+from tests.conftest import PyATSTestDirs
 
 
 class TestDeviceExecutorEnvPropagation:

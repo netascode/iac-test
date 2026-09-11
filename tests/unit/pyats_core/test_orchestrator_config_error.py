@@ -11,8 +11,7 @@ import pytest
 
 from nac_test.core.constants import ENV_CONTROLLER_CONTEXT
 from nac_test.pyats_core.orchestrator import PyATSOrchestrator
-
-from ..conftest import PyATSTestDirs
+from tests.conftest import PyATSTestDirs
 
 
 class TestOrchestratorSubprocessRunnerInitError:

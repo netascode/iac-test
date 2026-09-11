@@ -179,7 +179,7 @@ class E2ECombinedTestBase:
         )
 
     def test_merged_data_file_removed_after_run(self, results: E2EResults) -> None:
-        """Merged data model YAML must not persist after a successful run.
+        """Merged data model file must not persist after a successful run.
 
         The file contains potentially sensitive variable data and is registered
         with CleanupManager for deletion on exit. Its absence confirms cleanup ran.

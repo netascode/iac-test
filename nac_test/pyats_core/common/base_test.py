@@ -51,7 +51,6 @@ from nac_test.pyats_core.reporting.step_interceptor import StepInterceptor
 from nac_test.pyats_core.reporting.types import ResultStatus
 from nac_test.utils import sanitize_hostname
 from nac_test.utils.formatting import format_file_timestamp_ms
-from nac_test.utils.yaml import safe_load
 
 T = TypeVar("T")
 
@@ -827,7 +826,7 @@ class NACTestBase(aetest.Testcase):  # type: ignore[misc]
             )
 
         with open(data_file, encoding="utf-8") as f:
-            data = safe_load(f)
+            data = json.load(f)
             return data if isinstance(data, dict) else {}
 
     def get_default_value(

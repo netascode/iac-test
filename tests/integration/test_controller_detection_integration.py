@@ -34,8 +34,8 @@ class TestControllerDetectionIntegration:
         output_dir.mkdir()
 
         # Create a dummy merged data file
-        merged_file = output_dir / "merged_data.yaml"
-        merged_file.write_text("test: data")
+        merged_file = output_dir / "merged_data.json"
+        merged_file.write_text('{"test": "data"}')
 
         # Create a dummy test file
         test_file = test_dir / "test_dummy.py"

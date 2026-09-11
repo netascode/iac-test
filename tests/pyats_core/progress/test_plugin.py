@@ -11,7 +11,7 @@ import pytest
 
 from nac_test.pyats_core.constants import ENV_TEST_DIR
 from nac_test.pyats_core.progress.plugin import ProgressReporterPlugin
-from tests.pyats_core.conftest import PyATSTestDirs
+from tests.conftest import PyATSTestDirs
 
 
 def _make_plugin(

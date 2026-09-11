@@ -232,7 +232,7 @@ class TestCleanupManagerSkipIfDebug:
         self, fresh_cleanup_manager: CleanupManager, tmp_path: Path
     ) -> None:
         """In debug mode, sensitive files are deleted but debug-skipped files are kept."""
-        sensitive = tmp_path / "merged_data.yaml"
+        sensitive = tmp_path / "merged_data.json"
         debug_file = tmp_path / "job.py"
         sensitive.touch()
         debug_file.touch()

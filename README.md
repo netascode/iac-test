@@ -381,7 +381,7 @@ Before test execution, `nac-test` merges all YAML data files into a single data 
 
 1. All files from `--data` paths are recursively loaded
 2. YAML structures are deep-merged (later files override earlier ones)
-3. The merged result is written to the output directory as `merged_data_model_test_variables.yaml`
+3. The merged result is written to the output directory as `merged_data_model_test_variables.json` and will be read by pyATS test cases
 4. Both Robot and PyATS tests reference this merged data
 
 ### Accessing the Merged Data
@@ -818,6 +818,7 @@ In addition to CLI options, `nac-test` supports several environment variables fo
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `NAC_TEST_VERBOSE` | unset | Enable verbose mode: verbose output and retain intermediate files (see `NAC_TEST_PYATS_KEEP_REPORT_DATA`) |
+| `NAC_TEST_DUMP_YAML_DATA_MODEL` | unset | Write merged data model as YAML for debugging. File is not auto-cleaned up; you must remove it manually. WARNING: May contain sensitive values. |
 
 ## Troubleshooting
 

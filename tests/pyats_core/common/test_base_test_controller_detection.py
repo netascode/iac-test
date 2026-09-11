@@ -21,8 +21,8 @@ def setup_test_data_file_env(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> Generator[Path, None, None]:
     """Create temp data file and set MERGED_DATA_MODEL_TEST_VARIABLES_FILEPATH."""
-    temp_file = tmp_path / "test.yaml"
-    temp_file.write_text("test: data")
+    temp_file = tmp_path / "test.json"
+    temp_file.write_text('{"test": "data"}')
     monkeypatch.setenv("MERGED_DATA_MODEL_TEST_VARIABLES_FILEPATH", str(temp_file))
     yield temp_file
 

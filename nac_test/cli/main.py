@@ -22,6 +22,7 @@ from nac_test.cli.validators import validate_aci_defaults, validate_extra_args
 from nac_test.combined_orchestrator import CombinedOrchestrator
 from nac_test.core.constants import (
     DEBUG_MODE,
+    DUMP_YAML_DATA_MODEL,
     EXIT_DATA_ERROR,
     EXIT_ERROR,
     EXIT_INTERRUPTED,
@@ -390,7 +391,9 @@ def main(
     typer.echo("\n\n📄 Merging data model files...")
 
     merged_data = DataMerger.merge_data_files(data)
-    merged_data_path = DataMerger.write_merged_data_model(merged_data, output)
+    merged_data_path = DataMerger.write_merged_data_model(
+        merged_data, output, dump_yaml=DUMP_YAML_DATA_MODEL
+    )
 
     # Register merged data file for cleanup — always delete, even in debug mode,
     # because it may contain credentials resolved from !env references.

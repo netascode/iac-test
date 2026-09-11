@@ -40,6 +40,9 @@ DEBUG_MODE: bool = get_bool_env("NAC_TEST_DEBUG")
 # Set NAC_TEST_DISABLE_TESTLEVELSPLIT=true to disable test-level parallelization
 DISABLE_TESTLEVELSPLIT: bool = get_bool_env("NAC_TEST_DISABLE_TESTLEVELSPLIT")
 
+# Merged data model YAML dump for debugging
+# Set NAC_TEST_DUMP_YAML_DATA_MODEL=true to write YAML alongside JSON
+DUMP_YAML_DATA_MODEL: bool = get_bool_env("NAC_TEST_DUMP_YAML_DATA_MODEL")
 
 # Report timestamp format - single source of truth for all report generators
 REPORT_TIMESTAMP_FORMAT: str = "%Y-%m-%d %H:%M:%S"
@@ -86,7 +89,7 @@ LOG_HTML: str = "log.html"
 REPORT_HTML: str = "report.html"
 XUNIT_XML: str = "xunit.xml"
 ORDERING_FILENAME: str = "ordering.txt"
-MERGED_DATA_FILENAME: str = "merged_data_model_test_variables.yaml"
+MERGED_DATA_FILENAME: str = "merged_data_model_test_variables.json"
 # Owner read/write only — prevents other users from reading sensitive merged data
 MERGED_DATA_FILE_MODE: int = 0o600
 SUMMARY_SEPARATOR_WIDTH: int = 70

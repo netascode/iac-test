@@ -7,8 +7,7 @@ from unittest.mock import patch
 
 from nac_test.core.types import AuthMethod, ControllerContext
 from nac_test.pyats_core.orchestrator import PyATSOrchestrator
-
-from .conftest import PyATSTestDirs
+from tests.conftest import PyATSTestDirs
 
 
 class TestOrchestratorControllerParam:

@@ -14,8 +14,7 @@ from nac_test.pyats_core.common.types import (
     TestFileMetadata,
 )
 from nac_test.pyats_core.orchestrator import PyATSOrchestrator
-
-from .conftest import PyATSTestDirs
+from tests.conftest import PyATSTestDirs
 
 
 def _make_execution_plan(

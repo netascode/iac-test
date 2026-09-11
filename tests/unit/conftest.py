@@ -3,8 +3,7 @@
 
 """Shared fixtures for unit tests."""
 
-from pathlib import Path
-from typing import Any, NamedTuple
+from typing import Any
 from unittest.mock import AsyncMock, Mock
 
 import pytest
@@ -15,15 +14,6 @@ from nac_test.pyats_core.constants import (
     PYATS_GRACEFUL_DISCONNECT_WAIT_SECONDS,
     PYATS_POST_DISCONNECT_WAIT_SECONDS,
 )
-
-
-class PyATSTestDirs(NamedTuple):
-    """Directory structure for PyATS orchestrator tests."""
-
-    test_dir: Path
-    output_dir: Path
-    merged_file: Path
-
 
 AUTH_SUCCESS = AuthCheckResult(
     success=True,
@@ -121,21 +111,3 @@ def cc_controller_env(monkeypatch: MonkeyPatch) -> None:
     monkeypatch.setenv("CC_URL", "https://cc.test.com")
     monkeypatch.setenv("CC_USERNAME", "admin")
     monkeypatch.setenv("CC_PASSWORD", "test_pass")
-
-
-@pytest.fixture()
-def pyats_test_dirs(tmp_path: Path) -> PyATSTestDirs:
-    """Create standard directory structure for PyATS orchestrator tests.
-
-    Returns:
-        PyATSTestDirs with test_dir, output_dir, and merged_file paths.
-    """
-    test_dir = tmp_path / "tests"
-    test_dir.mkdir()
-    output_dir = tmp_path / "output"
-    output_dir.mkdir()
-    merged_file = output_dir / "merged.yaml"
-    merged_file.write_text("test: data")
-    return PyATSTestDirs(
-        test_dir=test_dir, output_dir=output_dir, merged_file=merged_file
-    )

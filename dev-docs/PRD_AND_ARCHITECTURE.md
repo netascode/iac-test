@@ -472,7 +472,7 @@ sequenceDiagram
     DataMerger->>DataMerger: Load YAML files
     DataMerger->>DataMerger: Apply Jinja2 templating
     DataMerger->>DataMerger: Resolve environment variables
-    DataMerger-->>CombinedOrch: merged_data_model.yaml
+    DataMerger-->>CombinedOrch: merged_data_model.json
 
     Note over CombinedOrch: Phase 2: Test Discovery
     CombinedOrch->>PyATSOrch: run_tests()
@@ -539,7 +539,7 @@ graph LR
     subgraph "Phase 1: Data Preparation"
         A1[Load Data Files] --> A2[Apply Jinja2]
         A2 --> A3[Merge YAML]
-        A3 --> A4[Write merged_data_model.yaml]
+        A3 --> A4[Write merged_data_model.json]
     end
 
     subgraph "Phase 2: Test Discovery"
@@ -1104,7 +1104,7 @@ def main(
     minimal_reports: MinimalReports = False,
     verbosity: Verbosity = VerbosityLevel.WARNING,
     version: Version = False,  # Handled by eager callback
-    merged_data_filename: MergedDataFilename = "merged_data_model_test_variables.yaml",
+    merged_data_filename: MergedDataFilename = "merged_data_model_test_variables.json",
 ) -> None:
     """A CLI tool to render and execute Robot Framework tests using Jinja templating."""
 
@@ -1565,7 +1565,6 @@ nac-test \
 1. **Fail Fast**: Invalid YAML detected before orchestrator initialization
 2. **Single Source of Truth**: Both PyATS and Robot read identical merged data
 3. **Timing Visibility**: User sees merge time separately from test execution time
-4. **Debugging**: Merged data file available for inspection (`cat output/merged_data_model_test_variables.yaml`)
 
 **Alternative Rejected**: Merge data inside orchestrator
 - **Con**: Orchestrator initialization could fail due to data issues (less clear error)
@@ -2149,7 +2148,7 @@ async def run_device_job_with_semaphore(
             "HOSTNAME": hostname,
             "DEVICE_INFO": json.dumps(device),  # Serialized device dict
             "MERGED_DATA_MODEL_TEST_VARIABLES_FILEPATH": str(
-                self.subprocess_runner.output_dir / "merged_data_model_test_variables.yaml"
+                self.subprocess_runner.output_dir / "merged_data_model_test_variables.json"
             ),
             "PYTHONPATH": get_pythonpath_for_tests(self.test_dir, [nac_test_dir]),
         })
@@ -2205,7 +2204,7 @@ archive_paths = await asyncio.gather(*tasks, return_exceptions=True)
 ┌─────────────────────────────────────────────────────────────────┐
 │                        CLI Entry (main.py)                      │
 │  1. Configure logging                                           │
-│  2. Merge data files → merged_data_model_test_variables.yaml   │
+│  2. Merge data files → merged_data_model_test_variables.json   │
 │  3. Create CombinedOrchestrator                                │
 └─────────────────────────┬───────────────────────────────────────┘
                           │
@@ -2462,7 +2461,7 @@ Set by PyATSOrchestrator and read by PyATS test subprocesses:
 
 | Variable | Purpose | Example Value |
 |----------|---------|---------------|
-| `MERGED_DATA_MODEL_TEST_VARIABLES_FILEPATH` | Absolute path to merged data model | `/path/to/output/merged_data_model_test_variables.yaml` |
+| `MERGED_DATA_MODEL_TEST_VARIABLES_FILEPATH` | Absolute path to merged data model | `/path/to/output/merged_data_model_test_variables.json` |
 | `NAC_TEST_TEST_DIR` | Absolute path to `test_dir` (templates root); used by the progress plugin and archive inspector to compute dot-notation test names relative to this directory | `/path/to/project/templates` |
 | `PYTHONPATH` | Python path for test discovery | `/path/to/nac-test:/path/to/templates` |
 | `PYATS_LOG_LEVEL` | PyATS logging level | `ERROR` |
@@ -2579,7 +2578,7 @@ Rendering Robot templates...
    📁 Results: /output/
    📊 Reports: /output/report.html
 
-📄 Merged data model: /output/merged_data_model_test_variables.yaml
+📄 Merged data model: /output/merged_data_model_test_variables.json
 ====================================================
 
 Total runtime: 3 minutes 26.8 seconds
@@ -3612,7 +3611,7 @@ nac_test/
 {output_dir}/
 ├── combined_summary.html                  # Root-level combined dashboard ✨
 ├── xunit.xml                              # Merged xUnit XML (Robot + PyATS) ✨
-├── merged_data_model_test_variables.yaml  # Merged data model (debugging)
+├── merged_data_model_test_variables.json  # Merged data model (debugging)
 ├── robot_results/                         # Robot Framework results
 │   ├── <rendered templates>               # Rendered .robot files (from -t)
 │   ├── ordering.txt                       # Pabot test-level ordering (if applicable)
@@ -4277,7 +4276,7 @@ graph TB
 
     subgraph "External Systems"
         APIC[Cisco APIC<br/>REST API]
-        DataModel[Merged Data Model<br/>YAML]
+        DataModel[Merged Data Model<br/>JSON]
     end
 
     TenantTest --> APICTestBase
@@ -6300,7 +6299,7 @@ project-root/
 │       └── test_*.py
 │
 └── output/                     # Generated outputs (git-ignored)
-    ├── merged_data_model.yaml  # Merged data file
+    ├── merged_data_model.json  # Merged data file
     ├── pyats_results/          # Extracted archives
     │   ├── api/                # API test results
     │   │   ├── html_reports/
@@ -9452,7 +9451,7 @@ Environment variables solve this elegantly:
 
 | Variable Name | Set By | Used By | Purpose | Example Value |
 |--------------|--------|---------|---------|---------------|
-| `MERGED_DATA_MODEL_TEST_VARIABLES_FILEPATH` | Orchestrator | All tests | Absolute path to merged YAML data model | `/path/to/output/merged_data_model_test_variables.yaml` |
+| `MERGED_DATA_MODEL_TEST_VARIABLES_FILEPATH` | Orchestrator | All tests | Absolute path to merged JSON data model | `/path/to/output/merged_data_model_test_variables.json` |
 | `DEVICE_INFO` | Device Executor | D2D tests only | JSON-serialized device connection info | `{"hostname": "cedge-1", "host": "10.1.1.1", "username": "admin", "password": "secret"}` |
 | `HOSTNAME` | Device Executor | D2D tests only | Current device hostname (for convenience) | `cedge-1` |
 
@@ -9733,7 +9732,7 @@ cat /proc/<PID>/environ | tr '\0' '\n'  # View env vars
 │                    nac-test CLI / Orchestrator                       │
 │                                                                       │
 │  1. Read user config (ACI_URL, ACI_USERNAME, ACI_PASSWORD)           │
-│  2. Create merged data model YAML file                               │
+│  2. Create merged data model JSON file                               │
 │  3. Prepare environment:                                              │
 │     env = os.environ.copy()                                           │
 │     env["MERGED_DATA_MODEL_TEST_VARIABLES_FILEPATH"] = "/path/..."   │
@@ -10964,7 +10963,7 @@ When nac-test executes, it creates this directory hierarchy:
 ```
 {base_output_dir}/                           # User-specified output directory (--output-dir)
 │
-├── merged_data_model_test_variables.yaml    # Merged data model from all input YAMLs
+├── merged_data_model_test_variables.json    # Merged data model from all input YAMLs
 │
 ├── html_report_data_temp/                   # Temporary JSONL files written by tests
 │   ├── test_{test_id}_001.jsonl             # One JSONL file per test execution
@@ -11044,7 +11043,7 @@ env["MERGED_DATA_MODEL_TEST_VARIABLES_FILEPATH"] = str(
 ```
 
 **What happens:**
-- `main.py` merges all input YAML files into `merged_data_model_test_variables.yaml`
+- `main.py` merges all input YAML files into `merged_data_model_test_variables.json`
 - File written to **base output directory** (not inside `pyats_results/`)
 - Absolute path passed to test subprocesses via environment variable
 - Tests read configuration from this central location
@@ -11894,7 +11893,7 @@ env.update({
     "HOSTNAME": hostname,  # e.g., "apic1"
     "DEVICE_INFO": json.dumps(device),  # Full device dict with credentials
     "MERGED_DATA_MODEL_TEST_VARIABLES_FILEPATH": str(
-        self.subprocess_runner.output_dir / "merged_data_model_test_variables.yaml"
+        self.subprocess_runner.output_dir / "merged_data_model_test_variables.json"
     ),
     "PYTHONPATH": get_pythonpath_for_tests(self.test_dir, [nac_test_dir]),
     # Pass test_dir so the plugin subprocess can compute relative test names
@@ -12269,7 +12268,7 @@ print("Job file written to /tmp/manual_job.py")
 EOF
 
 # Step 2: Set required environment variables
-export MERGED_DATA_MODEL_TEST_VARIABLES_FILEPATH="$(pwd)/output/merged_data_model_test_variables.yaml"
+export MERGED_DATA_MODEL_TEST_VARIABLES_FILEPATH="$(pwd)/output/merged_data_model_test_variables.json"
 export PYTHONPATH="$(pwd)/tests:$(pwd)"
 export PYATS_LOG_LEVEL="INFO"
 
@@ -12308,7 +12307,7 @@ def main(runtime):
 EOF
 
 # Execute custom job
-export MERGED_DATA_MODEL_TEST_VARIABLES_FILEPATH="$(pwd)/output/merged_data_model_test_variables.yaml"
+export MERGED_DATA_MODEL_TEST_VARIABLES_FILEPATH="$(pwd)/output/merged_data_model_test_variables.json"
 export PYTHONPATH="$(pwd)/tests:$(pwd)"
 
 pyats run job /tmp/custom_job.py \
@@ -15938,7 +15937,7 @@ deduplicate_list_items()
     ↓
 DataMerger.write_merged_data_model()
     ↓
-Write: merged_data_model_test_variables.yaml
+Write: merged_data_model_test_variables.json
     ↓
 Consumed by:
   - PyATS tests: Read via MERGED_DATA_MODEL_TEST_VARIABLES_FILEPATH env var
@@ -15988,9 +15987,9 @@ class DataMerger:
     def write_merged_data_model(
         data: Dict[str, Any],
         output_directory: Path,
-        filename: str = "merged_data_model_test_variables.yaml",
+        filename: str = "merged_data_model_test_variables.json",
     ) -> None:
-        """Write merged data model to YAML file."""
+        """Write merged data model to JSON file."""
         full_output_path = output_directory / filename
         logger.info("Writing merged data model to %s", full_output_path)
         yaml.write_yaml_file(data, full_output_path)
@@ -16451,7 +16450,7 @@ export PROD_USERNAME=admin
 nac-test run --data data/base.yaml --data data/prod.yaml
 ```
 
-**Resulting merged_data_model_test_variables.yaml (dev):**
+**Resulting merged_data_model_test_variables.json (dev):**
 
 ```yaml
 ---
@@ -16872,7 +16871,7 @@ devices:
 **Benefits:**
 
 1. **Cross-process Communication**: Subprocess reads via environment variable path
-2. **Debugging**: Inspect `merged_data_model_test_variables.yaml` to understand test data
+2. **Debugging**: Inspect `merged_data_model_test_variables.json` to understand test data
 3. **Single Source of Truth**: One file, one merge, consumed by all tests
 4. **Reproducibility**: Archive merged data with test results for troubleshooting
 
@@ -16880,7 +16879,7 @@ devices:
 
 ```
 output/
-└── merged_data_model_test_variables.yaml  ← Single source of truth
+└── merged_data_model_test_variables.json  ← Single source of truth
 ```
 
 ---
@@ -17409,7 +17408,7 @@ NAC_TEST_VERBOSE=1 nac-test run --data base.yaml
 %AETEST-INFO: +------------------------------------------------------------------------------+
 %AETEST-INFO: |                          Starting section setup                             |
 %AETEST-INFO: +------------------------------------------------------------------------------+
-%SCRIPT-INFO: Loading merged data model from /path/to/merged_data_model_test_variables.yaml
+%SCRIPT-INFO: Loading merged data model from /path/to/merged_data_model_test_variables.json
 %SCRIPT-INFO: Connecting to APIC at https://apic1.example.com
 %HTTPX-INFO: HTTP Request: GET https://apic1.example.com/api/class/fvTenant.json "HTTP/2 200 OK"
   -> Section setup passed
@@ -19457,7 +19456,7 @@ nac-test run --data base.yaml --verbosity INFO
 
 ```
 INFO - Loading yaml files from /path/to/base.yaml, /path/to/dev.yaml
-INFO - Writing merged data model to /path/to/output/merged_data_model_test_variables.yaml
+INFO - Writing merged data model to /path/to/output/merged_data_model_test_variables.json
 Discovered 45 PyATS test files
 Running with 10 parallel workers
 INFO - Executing 45 API tests using standard PyATS job execution
@@ -19492,7 +19491,7 @@ DEBUG - Loaded dev.yaml with 50 lines
 DEBUG - Performing deep merge of 2 files
 DEBUG - Merged dict keys: ['apic', 'devices', 'tenants']
 DEBUG - Data model conversion completed successfully
-INFO - Writing merged data model to /path/to/output/merged_data_model_test_variables.yaml
+INFO - Writing merged data model to /path/to/output/merged_data_model_test_variables.json
 DEBUG - Discovered test file: /path/to/tests/api/test_apic_tenants.py
 DEBUG - Discovered test file: /path/to/tests/api/test_apic_vrfs.py
 ...
@@ -19528,7 +19527,7 @@ nac-test run --data base.yaml --verbosity INFO
 
 ```
 INFO - Loading yaml files from /path/to/base.yaml
-INFO - Writing merged data model to /path/to/output/merged_data_model_test_variables.yaml
+INFO - Writing merged data model to /path/to/output/merged_data_model_test_variables.json
 Discovered 12 PyATS test files
 Running with 10 parallel workers
 INFO - Executing 12 D2D tests using device-centric execution with connection broker
@@ -22817,7 +22816,7 @@ self.result_collector.add_result(
 
 **5.2: Data Model Access Contract**
 
-Tests access merged YAML data via `self.data_model`:
+Tests access merged JSON data via `self.data_model`:
 
 ```python
 @aetest.setup
@@ -24767,7 +24766,7 @@ if self.dev_pyats_only:
 **Output Structure** (PyATS Only):
 ```
 output_dir/
-├── merged_data_model_test_variables.yaml  # SOT - always created
+├── merged_data_model_test_variables.json  # SOT - always created
 ├── pyats_results/                          # PyATS-specific directory
 │   ├── api/                               # API test archives
 │   │   └── api_tests_YYYYMMDD_HHMMSS_mmm.tar.gz
@@ -24896,7 +24895,7 @@ if self.dev_robot_only:
 **Output Structure** (Robot Only):
 ```
 output_dir/
-├── merged_data_model_test_variables.yaml  # SOT - always created
+├── merged_data_model_test_variables.json  # SOT - always created
 ├── rendered/                               # Rendered .robot files
 │   ├── test_suite_1.robot
 │   └── test_suite_2.robot
@@ -25095,7 +25094,7 @@ def _print_execution_summary(self, has_pyats: bool, has_robot: bool) -> None:
 **Output Structure** (Combined):
 ```
 output_dir/
-├── merged_data_model_test_variables.yaml  # SOT - always created first
+├── merged_data_model_test_variables.json  # SOT - always created first
 │
 ├── pyats_results/                          # PyATS directory
 │   ├── api/
@@ -25251,7 +25250,7 @@ merge-data:
     - nac-test -d data/ -t templates/ -o output/ --render-only
   artifacts:
     paths:
-      - output/merged_data_model_test_variables.yaml
+      - output/merged_data_model_test_variables.json
 
 # Stage 2: PyATS tests in parallel
 test-api:
@@ -25314,7 +25313,7 @@ $ nac-test -d data/ -t templates/ -o output/
    📁 Results: output/pyats_results/
    📊 Reports: output/pyats_results/html_reports/
 
-📄 Merged data model: output/merged_data_model_test_variables.yaml
+📄 Merged data model: output/merged_data_model_test_variables.json
 ==================================================
 
 Total runtime: 5 minutes 32 seconds
@@ -25344,7 +25343,7 @@ $ nac-test -d data/ -t templates/ -o output/
    📁 Results: output/
    📊 Reports: output/report.html
 
-📄 Merged data model: output/merged_data_model_test_variables.yaml
+📄 Merged data model: output/merged_data_model_test_variables.json
 ==================================================
 
 Total runtime: 12 minutes 8 seconds
@@ -25498,7 +25497,7 @@ $ nac-test -d data/ -t templates/ -o output/ --pyats
    - vs merge twice (2-4 seconds + potential inconsistency)
 
 3. **Debugging Simplicity**: One file to inspect for troubleshooting
-   - `output/merged_data_model_test_variables.yaml` shows exactly what tests see
+   - `output/merged_data_model_test_variables.json` shows exactly what tests see
    - No need to compare PyATS vs Robot merged data
    - Reduced cognitive load
 

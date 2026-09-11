@@ -14,6 +14,7 @@ import os
 import tempfile
 from collections.abc import Generator
 from pathlib import Path
+from typing import NamedTuple
 
 import pytest
 
@@ -27,6 +28,14 @@ MOCK_API_CONFIG_PATH = Path(__file__).parent / "e2e" / "mocks" / "mock_api_confi
 MOCK_API_CONFIG_PREFLIGHT_401_PATH = (
     Path(__file__).parent / "e2e" / "mocks" / "mock_api_config_preflight_401.yaml"
 )
+
+
+class PyATSTestDirs(NamedTuple):
+    """Directory structure for PyATS orchestrator tests."""
+
+    test_dir: Path
+    output_dir: Path
+    merged_file: Path
 
 
 def assert_is_link_to(link: Path, source: Path) -> None:
@@ -193,3 +202,21 @@ def cc_context() -> ControllerContext:
 def iosxe_context() -> ControllerContext:
     """Pre-built ControllerContext for IOS-XE with session auth."""
     return ControllerContext(controller_type="IOSXE", auth_method=AuthMethod.SESSION)
+
+
+@pytest.fixture()
+def pyats_test_dirs(tmp_path: Path) -> PyATSTestDirs:
+    """Create standard directory structure for PyATS orchestrator tests.
+
+    Returns:
+        PyATSTestDirs with test_dir, output_dir, and merged_file paths.
+    """
+    test_dir = tmp_path / "tests"
+    test_dir.mkdir()
+    output_dir = tmp_path / "output"
+    output_dir.mkdir()
+    merged_file = output_dir / "merged.json"
+    merged_file.write_text('{"test": "data"}')
+    return PyATSTestDirs(
+        test_dir=test_dir, output_dir=output_dir, merged_file=merged_file
+    )

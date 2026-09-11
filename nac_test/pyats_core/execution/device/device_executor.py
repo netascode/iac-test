@@ -41,7 +41,7 @@ class DeviceExecutor:
             test_status: Dictionary for tracking test status
             test_dir: Directory containing PyATS test files (user-specified)
             base_output_dir: Base output directory for test results
-            merged_data_path: Path to the merged data model YAML file
+            merged_data_path: Path to the merged data model file
             custom_testbed_path: Optional path to custom PyATS testbed YAML
         """
         self.job_generator = job_generator
