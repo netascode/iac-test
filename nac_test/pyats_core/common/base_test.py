@@ -10,7 +10,7 @@ import os
 import sys
 import tempfile
 import time
-from collections.abc import Awaitable, Callable, Iterator
+from collections.abc import Awaitable, Callable, Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from datetime import datetime
 from functools import lru_cache
@@ -26,6 +26,7 @@ from pyats import aetest
 
 import nac_test.pyats_core.reporting.step_interceptor as interceptor_module
 from nac_test.core.constants import (
+    ENV_DEVICE_FILTER_JSON,
     FILE_TIMESTAMP_FORMAT,
     PYATS_RESULTS_DIRNAME,
 )
@@ -50,10 +51,25 @@ from nac_test.pyats_core.reporting.collector import TestResultCollector
 from nac_test.pyats_core.reporting.step_interceptor import StepInterceptor
 from nac_test.pyats_core.reporting.types import ResultStatus
 from nac_test.utils import sanitize_hostname
+from nac_test.utils.device_filter import (
+    DeviceFilter,
+    apply_all,
+    filters_from_json,
+    format_unknown_field_error,
+)
 from nac_test.utils.formatting import format_file_timestamp_ms
 from nac_test.utils.yaml import safe_load
 
 T = TypeVar("T")
+
+logger = logging.getLogger(__name__)
+
+
+@lru_cache(maxsize=1)
+def _parse_device_filters_from_env(env_val: str | None) -> tuple[DeviceFilter, ...]:
+    if not env_val:
+        return ()
+    return tuple(filters_from_json(env_val))
 
 
 class NACTestBase(aetest.Testcase):  # type: ignore[misc]
@@ -82,6 +98,7 @@ class NACTestBase(aetest.Testcase):  # type: ignore[misc]
     _current_test_context: str | None = None
     result_collector: TestResultCollector | None = None
     output_dir: Path | None = None
+    _device_filters: list[DeviceFilter] | None = None
 
     # Counters — zero-defaulted, checked for truthiness (not nullability)
     _controller_recovery_count: int = 0
@@ -891,6 +908,84 @@ class NACTestBase(aetest.Testcase):  # type: ignore[misc]
             defaults_prefix=defaults_prefix,
             required=required,
         )
+
+    @property
+    def device_filters(self) -> list[DeviceFilter]:
+        """Parsed device filters for this test instance."""
+        if not hasattr(self, "_device_filters") or self._device_filters is None:
+            raw = os.environ.get(ENV_DEVICE_FILTER_JSON)
+            self._device_filters = list(_parse_device_filters_from_env(raw))
+        return self._device_filters
+
+    @classmethod
+    def get_device_filters(cls) -> list[DeviceFilter]:
+        """Get parsed device filters from the environment.
+
+        Reads NAC_TEST_DEVICE_FILTER_JSON and returns parsed DeviceFilter objects.
+        """
+        raw = os.environ.get(ENV_DEVICE_FILTER_JSON)
+        return list(_parse_device_filters_from_env(raw))
+
+    def filter_devices(
+        self,
+        devices: Sequence[T],
+        key: Callable[[T], Mapping[str, Any]] | None = None,
+        strict: bool = True,
+    ) -> list[T]:
+        """Filter a collection of devices using active --device-filter criteria.
+
+        Args:
+            devices: Sequence of devices (dicts, or custom objects if `key` accessor is provided).
+            key: Optional callable extracting a Mapping from each item for filtering.
+            strict: If True (default), raise ValueError on unknown filter fields.
+                If False, log a warning and skip that filter.
+
+        Returns:
+            Filtered list of devices matching all active filters.
+            Returns original devices if no filters are active.
+            Returns empty list [] if all devices are excluded.
+
+        Raises:
+            ValueError: If strict=True and a filter references a field not present
+                in any device in the provided population.
+        """
+        filters = self.device_filters
+        if not filters or not devices:
+            return list(devices)
+
+        device_mappings: list[Mapping[str, Any]] = []
+        for d in devices:
+            m = key(d) if key is not None else d
+            if isinstance(m, Mapping):
+                device_mappings.append(m)
+            else:
+                raise TypeError(
+                    f"Device item {d!r} is not a Mapping and no valid key accessor was provided"
+                )
+
+        result = apply_all(device_mappings, filters)
+
+        if result.unknown_fields:
+            err_msg = format_unknown_field_error(
+                result.unknown_fields, result.keys_seen
+            )
+            if strict:
+                raise ValueError(err_msg)
+            logger.warning(err_msg)
+            known_filters = [f for f in filters if f.field not in result.unknown_fields]
+            if not known_filters:
+                return list(devices)
+            return [
+                d
+                for d, m in zip(devices, device_mappings, strict=False)
+                if all(f.matches(m) for f in known_filters)
+            ]
+
+        return [
+            d
+            for d, m in zip(devices, device_mappings, strict=False)
+            if all(f.matches(m) for f in filters)
+        ]
 
     # =========================================================================
     # API-SPECIFIC METHODS (for API/HTTP-based tests)

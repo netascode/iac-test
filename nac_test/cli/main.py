@@ -18,10 +18,15 @@ from robot.errors import DataError
 import nac_test
 from nac_test.cli.diagnostic import run_diagnostic
 from nac_test.cli.ui import display_aci_defaults_banner
-from nac_test.cli.validators import validate_aci_defaults, validate_extra_args
+from nac_test.cli.validators import (
+    validate_aci_defaults,
+    validate_device_filter,
+    validate_extra_args,
+)
 from nac_test.combined_orchestrator import CombinedOrchestrator
 from nac_test.core.constants import (
     DEBUG_MODE,
+    ENV_DEVICE_FILTER,
     EXIT_DATA_ERROR,
     EXIT_ERROR,
     EXIT_INTERRUPTED,
@@ -292,6 +297,17 @@ Testbed = Annotated[
 ]
 
 
+DeviceFilterOption = Annotated[
+    list[str] | None,
+    typer.Option(
+        "--device-filter",
+        help="Filter devices by attribute expressions (e.g. 'role=spine', 'tags=~prod.*'). Repeatable; combines with AND.",
+        envvar=ENV_DEVICE_FILTER,
+        callback=validate_device_filter,
+    ),
+]
+
+
 @app.command(context_settings={"allow_extra_args": True})
 def main(
     ctx: typer.Context,
@@ -310,6 +326,7 @@ def main(
     max_parallel_devices: MaxParallelDevices | None = None,
     minimal_reports: MinimalReports = False,
     testbed: Testbed = None,
+    device_filter: DeviceFilterOption = None,
     loglevel: LoglevelOption = None,
     verbosity: DeprecatedVerbosity = None,
     version: Version = False,
@@ -417,6 +434,7 @@ def main(
         extra_args=validated_robot_args,
         max_parallel_devices=max_parallel_devices,
         minimal_reports=minimal_reports,
+        device_filters=device_filter,
         loglevel=effective_loglevel,
         dev_pyats_only=pyats,
         dev_robot_only=robot,

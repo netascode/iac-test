@@ -8,7 +8,7 @@ resolution-markers = [
 ]
 
 [options]
-exclude-newer = "2026-09-07T11:18:58.195977Z"
+exclude-newer = "2026-09-09T17:15:47.026917Z"
 exclude-newer-span = "P3D"
 
 [options.exclude-newer-package]
@@ -2061,7 +2061,7 @@ requires-dist = [
     { name = "lxml", specifier = ">=6.1.0" },
     { name = "markdown", specifier = ">=3.10.2" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.17.1" },
-    { name = "nac-test-pyats-common", specifier = ">=0.4.0b2" },
+    { name = "nac-test-pyats-common", git = "https://github.com/netascode/nac-test-pyats-common.git?branch=feat%2F60-device-filter" },
     { name = "nac-yaml", specifier = ">=2.0.0" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.6.0" },
     { name = "psutil", specifier = ">=7.2.2" },
@@ -2091,15 +2091,11 @@ provides-extras = ["dev"]
 [[package]]
 name = "nac-test-pyats-common"
 version = "0.4.0b2"
-source = { registry = "https://pypi.org/simple" }
+source = { git = "https://github.com/netascode/nac-test-pyats-common.git?branch=feat%2F60-device-filter#581de00fecbaa34b1b0833501cb0a3586f27b5a0" }
 dependencies = [
     { name = "filelock" },
     { name = "httpx" },
     { name = "nac-test" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/dc/1a/a6caf748bff0fd0cb2a6e5b6b0f796168436466fdefd6e0d03e428268dda/nac_test_pyats_common-0.4.0b2.tar.gz", hash = "sha256:2e8219e4f5412bb20709e061738b8f19794f9813475e344b5a1bed8fee82b47e", size = 71079, upload-time = "2026-09-10T11:13:22.686Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/da/4f/5ff37f9727365dab066c026d7af603b5d9b090d5ebaba6133bb83e895ead/nac_test_pyats_common-0.4.0b2-py3-none-any.whl", hash = "sha256:bae376c698533fb9593db2b9a4143f1c0a70f9feb29d7143b390849dd73c646a", size = 65560, upload-time = "2026-09-10T11:13:21.768Z" },
 ]
 
 [[package]]

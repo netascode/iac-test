@@ -113,6 +113,10 @@ HTTP_SERVICE_UNAVAILABLE_CODES: tuple[int, ...] = (408, 429, 503, 504)
 # Controller context env var (orchestrator writes, subprocess reads)
 ENV_CONTROLLER_CONTEXT: str = "NAC_TEST_CONTROLLER_CONTEXT"
 
+# Device filter environment variables
+ENV_DEVICE_FILTER: str = "NAC_TEST_DEVICE_FILTER"
+ENV_DEVICE_FILTER_JSON: str = "NAC_TEST_DEVICE_FILTER_JSON"
+
 # Auth cache directory (file-based token caching for parallel processes)
 AUTH_CACHE_DIR: str = os.path.join(tempfile.gettempdir(), "nac-test-auth-cache")
 

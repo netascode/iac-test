@@ -96,6 +96,7 @@ class CombinedOrchestrator:
         processes: int | None = None,
         extra_args: ValidatedRobotArgs | None = None,
         verbose: bool = False,
+        device_filters: list[str] | None = None,
     ):
         """Initialize the combined orchestrator.
 
@@ -142,6 +143,7 @@ class CombinedOrchestrator:
         self.minimal_reports = minimal_reports
         self.custom_testbed_path = custom_testbed_path
         self.loglevel = loglevel
+        self.device_filters = device_filters
 
         # Development modes
         self.dev_pyats_only = dev_pyats_only
@@ -229,6 +231,7 @@ class CombinedOrchestrator:
                 loglevel=self.loglevel,
                 include_tags=self.include_tags,
                 exclude_tags=self.exclude_tags,
+                device_filters=self.device_filters,
             )
             if self.max_parallel_devices is not None:
                 pyats_orchestrator.max_parallel_devices = self.max_parallel_devices
@@ -237,6 +240,12 @@ class CombinedOrchestrator:
             pyats_results = pyats_orchestrator.run_tests()
             combined_results.api = pyats_results.api
             combined_results.d2d = pyats_results.d2d
+        elif self.device_filters and not has_pyats:
+            # Robot-only run with --device-filter -> warning
+            typer.secho(
+                "\n⚠️  WARNING: --device-filter was specified but no PyATS tests were executed; filter has no effect on Robot Framework.",
+                fg=typer.colors.YELLOW,
+            )
 
         if has_robot:
             typer.echo(f"\n🤖 Running Robot Framework tests{mode_suffix}...\n")

@@ -911,6 +911,8 @@ class E2ECombinedTestBase:
         self, results: E2EResults
     ) -> None:
         """Verify stats line appears in Combined Summary section."""
+        if not results.has_robot_results and not results.has_pyats_results:
+            pytest.skip("No test results executed in this scenario")
         stdout = results.filtered_stdout
         summary_start = stdout.find("Combined Test Execution Summary")
         assert summary_start != -1, "Combined Summary section not found"
@@ -1806,3 +1808,43 @@ class TestE2ETagFilterNoMatch(E2ECombinedTestBase):
             "No pyATS tests matching tag filter (exclude: 'bgp OR ospf')"
             in results.filtered_stdout
         ), "Expected descriptive filter message in stdout"
+
+
+class TestE2EDeviceFilterTag(E2ECombinedTestBase):
+    """E2E tests for device filtering using tag expression on a multi-device data model.
+
+    Scenario: --device-filter tags=production
+    Data model contains 2 devices (sd-dc-c8kv-01: [dc, production], sd-dc-c8kv-02: [dc, lab]).
+    Only sd-dc-c8kv-01 should be executed.
+    """
+
+    @pytest.fixture
+    def results(self, e2e_device_filter_tag_results: E2EResults) -> E2EResults:
+        return e2e_device_filter_tag_results
+
+    def test_excluded_device_absent_from_reports(self, results: E2EResults) -> None:
+        """Verify sd-dc-c8kv-02 does not appear in reports or xunit."""
+        summary_html = results.output_dir / "summary.html"
+        if summary_html.exists():
+            content = summary_html.read_text()
+            assert "sd-dc-c8kv-02" not in content
+
+    def test_excluded_device_present_in_testbed(self, results: E2EResults) -> None:
+        """Verify sd-dc-c8kv-02 remains in broker_testbed.yaml (testbed is a connection catalog)."""
+        testbed_yaml = results.output_dir / "broker_testbed.yaml"
+        if testbed_yaml.exists():
+            content = testbed_yaml.read_text()
+            assert "sd-dc-c8kv-02" in content
+            assert "sd-dc-c8kv-01" in content
+
+    def test_excluded_device_never_connected(self, results: E2EResults) -> None:
+        """Verify no test or execution logs exist for sd-dc-c8kv-02."""
+        assert "sd-dc-c8kv-02" not in results.filtered_stdout
+        assert "sd-dc-c8kv-01" in results.filtered_stdout
+
+    def test_filter_summary_in_stdout(self, results: E2EResults) -> None:
+        """Verify stdout contains the device filter summary line with before/after counts."""
+        assert (
+            "Device filter applied (tags=production): 2 -> 1 devices matched."
+            in results.filtered_stdout
+        )

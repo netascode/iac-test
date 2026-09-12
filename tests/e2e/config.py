@@ -317,7 +317,7 @@ PYATS_API_ONLY_SCENARIO = E2EScenario(
 
 PYATS_D2D_ONLY_SCENARIO = E2EScenario(
     name="pyats_d2d_only",
-    description="PyATS D2D only - 2 passing tests, no Robot or API tests",
+    description="PyATS D2D only - 4 passing tests (2 tests x 2 devices), no Robot or API tests",
     data_path=f"{_FIXTURE_BASE}/pyats_d2d_only/data.yaml",
     templates_path=f"{_FIXTURE_BASE}/pyats_d2d_only/templates",
     requires_testbed=True,  # D2D tests require testbed
@@ -329,12 +329,12 @@ PYATS_D2D_ONLY_SCENARIO = E2EScenario(
     # No API tests
     expected_pyats_api_passed=0,
     expected_pyats_api_failed=0,
-    # PyATS D2D: verify_iosxe_control.py (1 pass) + verify_iosxe_ospf_te_links.py (1 pass)
+    # PyATS D2D: verify_iosxe_control.py (2 pass) + verify_iosxe_ospf_te_links.py (2 pass)
     # The OSPF TE test requires Genie's supplementary device.execute() calls
     # to be routed through the broker (fix for issue #663).
-    expected_pyats_d2d_passed=2,
+    expected_pyats_d2d_passed=4,
     expected_pyats_d2d_failed=0,
-    expected_d2d_hostnames=["sd-dc-c8kv-01"],
+    expected_d2d_hostnames=["sd-dc-c8kv-01", "sd-dc-c8kv-02"],
 )
 
 PYATS_CC_SCENARIO = E2EScenario(
@@ -581,4 +581,21 @@ PYATS_NXOS_D2D_SCENARIO = E2EScenario(
     expected_pyats_d2d_passed=1,
     expected_pyats_d2d_failed=0,
     expected_d2d_hostnames=["nxos-switch-01"],
+)
+
+DEVICE_FILTER_TAG_SCENARIO = E2EScenario(
+    name="device_filter_tag",
+    description="--device-filter tags=production: 2 devices in data model, matches 1 device (sd-dc-c8kv-01), runs 2 D2D tests -> exit 0",
+    data_path=f"{_FIXTURE_BASE}/pyats_d2d_only/data.yaml",
+    templates_path=f"{_FIXTURE_BASE}/pyats_d2d_only/templates",
+    requires_testbed=True,
+    architecture="SDWAN",
+    expected_exit_code=0,
+    expected_robot_passed=0,
+    expected_robot_failed=0,
+    expected_pyats_api_passed=0,
+    expected_pyats_api_failed=0,
+    expected_pyats_d2d_passed=2,
+    expected_pyats_d2d_failed=0,
+    expected_d2d_hostnames=["sd-dc-c8kv-01"],
 )

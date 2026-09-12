@@ -239,6 +239,7 @@ class TestCombinedOrchestratorController:
                     loglevel=DEFAULT_LOGLEVEL,
                     include_tags=[],
                     exclude_tags=[],
+                    device_filters=None,
                 )
 
                 # Verify run_tests was called on the instance
@@ -404,6 +405,7 @@ class TestCombinedOrchestratorController:
                     loglevel=DEFAULT_LOGLEVEL,
                     include_tags=[],
                     exclude_tags=[],
+                    device_filters=None,
                 )
 
                 # Verify run_tests was called on the instance
