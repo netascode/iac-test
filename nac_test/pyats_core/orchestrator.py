@@ -17,6 +17,7 @@ from nac_test.core.constants import (
     DEBUG_MODE,
     DRY_RUN_REASON,
     ENV_CONTROLLER_CONTEXT,
+    ENV_DEVICE_FILTER_JSON,
     EXIT_ERROR,
     PYATS_RESULTS_DIRNAME,
     SUMMARY_REPORT_FILENAME,
@@ -51,6 +52,12 @@ from nac_test.utils.cleanup import (
     cleanup_old_test_outputs,
     cleanup_pyats_runtime,
 )
+from nac_test.utils.device_filter import (
+    DeviceFilter,
+    check_repeated_positive_filters,
+    filters_to_json,
+    format_unknown_field_error,
+)
 from nac_test.utils.formatting import format_duration
 from nac_test.utils.logging import DEFAULT_LOGLEVEL, LogLevel
 from nac_test.utils.system_resources import SystemResourceCalculator
@@ -75,6 +82,7 @@ class PyATSOrchestrator:
         loglevel: LogLevel = DEFAULT_LOGLEVEL,
         include_tags: list[str] | None = None,
         exclude_tags: list[str] | None = None,
+        device_filters: list[str] | None = None,
     ):
         """Initialize the PyATS orchestrator.
 
@@ -91,6 +99,7 @@ class PyATSOrchestrator:
             loglevel: Log level for PyATS output filtering
             include_tags: Tag patterns to include (Robot Framework syntax)
             exclude_tags: Tag patterns to exclude (Robot Framework syntax)
+            device_filters: Device filter expressions for D2D/API tests (e.g. 'role=spine')
         """
         self.data_paths = data_paths
         # Use absolute() rather than resolve() to preserve symlinks — resolve() would
@@ -112,6 +121,7 @@ class PyATSOrchestrator:
         self.loglevel = loglevel
         self.include_tags = include_tags
         self.exclude_tags = exclude_tags
+        self.device_filters = device_filters
 
         # Track test status by type for combined summary
         self.api_test_status: dict[str, dict[str, Any]] = {}
@@ -548,6 +558,16 @@ class PyATSOrchestrator:
         if os.environ.get("CI"):
             cleanup_old_test_outputs(self.output_dir, days=3)
 
+        # Set up device filter JSON environment variable for resolver and child processes
+        parsed_device_filters: list[DeviceFilter] = []
+        if self.device_filters:
+            parsed_device_filters = [DeviceFilter.parse(f) for f in self.device_filters]
+            for warn_msg in check_repeated_positive_filters(parsed_device_filters):
+                logger.warning(warn_msg)
+            os.environ[ENV_DEVICE_FILTER_JSON] = filters_to_json(parsed_device_filters)
+        else:
+            os.environ.pop(ENV_DEVICE_FILTER_JSON, None)
+
         # Note: Merged data file created by main.py (single source of truth)
 
         discovery_result = self.test_discovery.discover_pyats_tests(
@@ -572,6 +592,12 @@ class PyATSOrchestrator:
 
         api_tests = discovery_result.api_paths
         d2d_tests = discovery_result.d2d_paths
+
+        # Warn if device filter was specified but no D2D tests exist
+        if self.device_filters and not d2d_tests:
+            logger.warning(
+                "--device-filter was specified but no D2D tests were executed; filter was not applied automatically."
+            )
 
         # Dry-run mode: print discovered tests and return results without further execution
         if self.dry_run:
@@ -635,6 +661,32 @@ class PyATSOrchestrator:
         if d2d_tests:
             # Get device inventory for D2D tests
             devices = self.device_inventory_discovery.get_device_inventory(d2d_tests)
+
+            diag = self.device_inventory_discovery.filter_diagnostics
+            if diag:
+                unknown_fields = diag.get("unknown_fields", [])
+                keys_seen = diag.get("keys_seen", set())
+                count_before = diag.get("count_before", 0)
+                count_after = diag.get("count_after", len(devices))
+                active_filters = diag.get("filters", [])
+
+                # Filter key absent from all devices in data model
+                if unknown_fields:
+                    err_msg = format_unknown_field_error(unknown_fields, keys_seen)
+                    logger.error(err_msg)
+                    return PyATSResults()
+
+                # Zero matches when a filter caused it -> 252
+                if count_before > 0 and count_after == 0:
+                    warn_msg = f"No devices matched the device filter(s): {', '.join(active_filters)}"
+                    logger.warning(warn_msg)
+                    return PyATSResults()
+
+                # Summary line with filters + before/after counts
+                if active_filters:
+                    print(
+                        f"Device filter applied ({', '.join(active_filters)}): {count_before} -> {count_after} devices matched."
+                    )
 
             # Display any skipped devices
             skipped = self.device_inventory_discovery.skipped_devices

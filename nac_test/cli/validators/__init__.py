@@ -12,7 +12,7 @@ Note:
 """
 
 from nac_test.cli.validators.aci_defaults import validate_aci_defaults
-from nac_test.cli.validators.args import validate_extra_args
+from nac_test.cli.validators.args import validate_device_filter, validate_extra_args
 from nac_test.core.controller import CONTROLLER_REGISTRY, ControllerConfig
 from nac_test.core.controller_auth import (
     AuthCheckResult,
@@ -27,6 +27,7 @@ __all__ = [
     "CONTROLLER_REGISTRY",
     "ControllerConfig",
     "extract_host",
+    "validate_device_filter",
     "validate_extra_args",
     "preflight_auth_check",
     "validate_aci_defaults",

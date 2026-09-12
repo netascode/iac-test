@@ -29,6 +29,7 @@ class DeviceInventoryDiscovery:
         """
         self.merged_data_filepath = merged_data_filepath
         self.skipped_devices: list[dict[str, str]] = []
+        self.filter_diagnostics: dict[str, Any] | None = None
 
     def get_device_inventory(self, test_files: list[Path]) -> list[dict[str, Any]]:
         """Get device inventory from test architecture in an architecture-agnostic way.
@@ -74,6 +75,9 @@ class DeviceInventoryDiscovery:
         if not test_files:
             logger.error("No test files provided for device inventory discovery")
             return []
+
+        self.filter_diagnostics = None
+        self.skipped_devices = []
 
         if not self.merged_data_filepath.exists():
             logger.error(f"Merged data model not found at {self.merged_data_filepath}")
@@ -129,12 +133,15 @@ class DeviceInventoryDiscovery:
                             )
                             devices = cls.get_ssh_device_inventory(data_model)
 
-                            # Capture skipped devices if the resolver exposes them
+                            # Capture skipped devices and filter diagnostics if the resolver exposes them
                             # Architecture resolvers store their last resolver instance
-                            # with skipped_devices attribute
+                            # with skipped_devices and filter_diagnostics attributes
                             if hasattr(cls, "_last_resolver") and cls._last_resolver:
                                 self.skipped_devices = getattr(
                                     cls._last_resolver, "skipped_devices", []
+                                )
+                                self.filter_diagnostics = getattr(
+                                    cls._last_resolver, "filter_diagnostics", None
                                 )
 
                             return list(devices)  # Ensure we return a list

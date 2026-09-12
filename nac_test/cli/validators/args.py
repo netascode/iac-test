@@ -12,9 +12,11 @@ import uuid
 from collections.abc import Callable
 from typing import Any, NamedTuple
 
+import typer
 from robot.errors import DataError
 
 from nac_test.core.types import ValidatedRobotArgs
+from nac_test.utils.device_filter import DeviceFilter
 from nac_test.utils.strings import parse_cli_option_name
 
 logger = logging.getLogger(__name__)
@@ -184,3 +186,21 @@ def validate_extra_args(extra_args: list[str]) -> ValidatedRobotArgs:
 
     _raise_if_datasources(datasources)
     return ValidatedRobotArgs(args=extra_args, robot_opts=robot_opts)
+
+
+def validate_device_filter(value: list[str] | None) -> list[str] | None:
+    """Validate --device-filter CLI arguments.
+
+    Raises:
+        typer.BadParameter: If any filter expression is invalid.
+    """
+    if not value:
+        return value
+
+    for item in value:
+        try:
+            DeviceFilter.parse(item)
+        except ValueError as e:
+            raise typer.BadParameter(str(e)) from None
+
+    return value

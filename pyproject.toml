@@ -93,6 +93,9 @@ override-dependencies = [
 exclude-newer = "3 days"
 exclude-newer-package = { nac-yaml = false,  nac-test-pyats-common = false }
 
+[tool.uv.sources]
+nac-test-pyats-common = { git = "https://github.com/netascode/nac-test-pyats-common.git", branch = "feat/60-device-filter" }
+
 [tool.coverage.run]
 source = ["nac_test"]
 
